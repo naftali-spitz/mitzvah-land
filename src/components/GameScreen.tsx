@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { movementTiming } from "../engine/movement";
 import { useGameStore } from "../store/gameStore";
 import { Board } from "./Board";
 import { Dice } from "./Dice";
@@ -31,6 +32,8 @@ export function GameScreen() {
   const [confirmQuit, setConfirmQuit] = useState(false);
   const [inspectedAssetId, setInspectedAssetId] = useState<string>();
   const movementSfxActive = useRef(false);
+  const prefersReducedMotion = useReducedMotion();
+  const useReducedMovement = s.settings.reducedMotion || !!prefersReducedMotion;
   const previousCardId = useRef(s.currentCard?.id);
   useEffect(() => {
     preloadSfx();
@@ -39,10 +42,10 @@ export function GameScreen() {
     if (s.phase !== "MOVING" || s.pendingSteps <= 0) return;
     const t = setTimeout(
       () => s.stepMove(),
-      s.settings.reducedMotion ? 25 : 175,
+      movementTiming(useReducedMovement).stepMs,
     );
     return () => clearTimeout(t);
-  }, [s.phase, s.pendingSteps, s.settings.reducedMotion, s.stepMove]);
+  }, [s.phase, s.pendingSteps, useReducedMovement, s.stepMove]);
   useEffect(() => {
     if (s.phase === "RESOLVING" && movementSfxActive.current) {
       movementSfxActive.current = false;
