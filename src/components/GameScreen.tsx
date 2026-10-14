@@ -18,6 +18,7 @@ import { netWorth, ownedSpaces } from "../engine/rules";
 import { playSfx, preloadSfx, stopSfx, unlockSfx } from "../audio/sfx";
 import { AssetCardModal } from "./AssetCard";
 import { TransactionOverlay } from "./TransactionOverlay";
+import { AiController } from "./AiController";
 
 export function GameScreen() {
   const s = useGameStore();
@@ -59,6 +60,7 @@ export function GameScreen() {
   if (!p) return null;
   return (
     <main className="game-screen" dir={s.lang === "he" ? "rtl" : "ltr"}>
+      <AiController />
       <header className="topbar">
         <div className="mini-logo">
           <CurrencyIcon size={28} />
@@ -70,7 +72,7 @@ export function GameScreen() {
         <div className="turn-title">
           <span>{label("תור", "TURN")}</span>
           <b style={{ color: p.color }}>
-            {p.token} {p.name}
+            {p.token} {p.name} {p.isComputer ? "🤖" : ""}
           </b>
           <small>
             {label("סיבוב", "Turn")} {s.turnNumber}
@@ -125,7 +127,7 @@ export function GameScreen() {
                       {pl.token}
                     </span>
                     <div>
-                      <b>{pl.name}</b>
+                      <b>{pl.name} {pl.isComputer && <span className="bot-tag">🤖 {label("מחשב", "BOT")}</span>}</b>
                       <Money value={pl.money} />
                     </div>
                     {pl.inJail && (
@@ -162,11 +164,11 @@ export function GameScreen() {
                     `Traffic turn ${p.jailTurns + 1}`,
                   )}
                 </p>
-                <button disabled={p.money < 50} onClick={s.payJailFine}>
+                <button disabled={!!p.isComputer || p.money < 50} onClick={s.payJailFine}>
                   {label("שלם 50 וצא", "PAY 50 & LEAVE")}
                 </button>
                 {p.getOutCards > 0 && (
-                  <button onClick={s.useGetOutCard}>
+                  <button disabled={!!p.isComputer} onClick={s.useGetOutCard}>
                     {label("השתמש בכרטיס יציאה", "USE GET-OUT CARD")}
                   </button>
                 )}
@@ -174,7 +176,7 @@ export function GameScreen() {
             )}
             <button
               className="roll-button"
-              disabled={s.phase !== "WAITING_FOR_ROLL"}
+              disabled={!!p.isComputer || s.phase !== "WAITING_FOR_ROLL"}
               onClick={() => {
                 const current = useGameStore.getState();
                 if (current.phase !== "WAITING_FOR_ROLL") return;
@@ -189,7 +191,7 @@ export function GameScreen() {
               }}
             >
               <span>⚄</span>
-              {label("גלגל קוביות", "ROLL DICE")}
+              {p.isComputer ? label("המחשב משחק...", "COMPUTER PLAYING...") : label("גלגל קוביות", "ROLL DICE")}
             </button>
             <div className="phase-note">{phaseText(s.phase, s.lang)}</div>
             {s.settings.freeParkingJackpot && s.freeParkingPot > 0 && (
@@ -199,17 +201,17 @@ export function GameScreen() {
             )}
           </div>
           <div className="action-grid">
-            <button onClick={() => setManageOpen(true)}>
+            <button disabled={!!p.isComputer} onClick={() => setManageOpen(true)}>
               {label("🏠 נכסים", "🏠 PROPERTIES")}
             </button>
             <button
-              disabled={s.phase !== "MANAGEMENT"}
+              disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !s.players.some(pl => pl.id !== p.id && !pl.bankrupt && !pl.isComputer)}
               onClick={() => setTradeOpen(true)}
             >
               {label("⇄ עסקה", "⇄ TRADE")}
             </button>
             <button
-              disabled={s.phase !== "MANAGEMENT" || !!s.currentCard || !!s.debt}
+              disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !!s.currentCard || !!s.debt}
               className="end-turn"
               onClick={s.endTurn}
             >

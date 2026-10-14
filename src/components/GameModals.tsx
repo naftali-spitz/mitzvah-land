@@ -129,12 +129,12 @@ export function PropertyDecision({
         <div className="modal-actions">
           <button
             className="primary"
-            disabled={(sp.price ?? 0) > p.money}
+            disabled={!!p.isComputer || (sp.price ?? 0) > p.money}
             onClick={s.buyPendingProperty}
           >
             {ui("קנה", "BUY", s.lang)}
           </button>
-          <button className="secondary" onClick={s.startAuction}>
+          <button className="secondary" disabled={!!p.isComputer} onClick={s.startAuction}>
             {ui("מכרז", "AUCTION", s.lang)}
           </button>
         </div>
@@ -155,7 +155,7 @@ export function CardModal() {
           {c.deck === "mazal" ? "מזל טוב · MAZAL TOV" : "מעשה טוב · GOOD DEEDS"}
         </small>
         <h2>{txt(c.text, s.lang)}</h2>
-        <button className="primary" onClick={s.dismissCard}>
+        <button className="primary" disabled={!!s.players[s.activePlayerIndex]?.isComputer} onClick={s.dismissCard}>
           {ui("המשך", "CONTINUE", s.lang)}
         </button>
       </div>
@@ -184,16 +184,16 @@ export function DebtModal() {
             s.lang,
           )}
         </p>
-        <Management inline />
+        {!p.isComputer && <Management inline />}
         <div className="modal-actions">
           <button
             className="primary"
-            disabled={p.money < d.amount}
+            disabled={!!p.isComputer || p.money < d.amount}
             onClick={s.settleDebt}
           >
             {ui("שלם עכשיו", "PAY NOW", s.lang)}
           </button>
-          <button className="danger" onClick={s.declareBankruptcy}>
+          <button className="danger" disabled={!!p.isComputer} onClick={s.declareBankruptcy}>
             {ui("הכרז פשיטת רגל", "DECLARE BANKRUPTCY", s.lang)}
           </button>
         </div>
@@ -212,10 +212,9 @@ export function AuctionModal({
   if (!a) return null;
   const sp = board.find((x) => x.id === a.spaceId)!;
   const alive = s.players.filter((p) => !p.bankrupt);
-  const canFinish =
-    !!a.highestBidderId &&
-    a.passed.filter((id) => id !== a.highestBidderId).length >=
-      alive.length - 1;
+  const canFinish = a.highestBidderId
+    ? alive.every(p => p.id === a.highestBidderId || a.passed.includes(p.id))
+    : alive.every(p => a.passed.includes(p.id));
   return (
     <Modal>
       <div className="auction">
@@ -247,11 +246,11 @@ export function AuctionModal({
                 <span className="mini-token" style={{ background: p.color }}>
                   {p.token}
                 </span>
-                <b>{p.name}</b>
+                <b>{p.name} {p.isComputer && "🤖"}</b>
                 <Money value={p.money} />
                 <div>
                   <button
-                    disabled={passed || p.money <= a.highestBid}
+                    disabled={passed || !!p.isComputer || p.money <= a.highestBid}
                     onClick={() =>
                       s.bidAuction(p.id, Math.min(p.money, a.highestBid + 10))
                     }
@@ -259,14 +258,14 @@ export function AuctionModal({
                     +10
                   </button>
                   <button
-                    disabled={passed || p.money <= a.highestBid}
+                    disabled={passed || !!p.isComputer || p.money <= a.highestBid}
                     onClick={() =>
                       s.bidAuction(p.id, Math.min(p.money, a.highestBid + 50))
                     }
                   >
                     +50
                   </button>
-                  <button onClick={() => s.passAuction(p.id)}>
+                  <button disabled={passed || !!p.isComputer} onClick={() => s.passAuction(p.id)}>
                     {ui("פרש", "PASS", s.lang)}
                   </button>
                 </div>
@@ -550,7 +549,7 @@ export function Management({
 export function TradeModal({ onClose }: { onClose: () => void }) {
   const s = useGameStore();
   const a = s.players[s.activePlayerIndex];
-  const targets = s.players.filter((p) => p.id !== a.id && !p.bankrupt);
+  const targets = s.players.filter((p) => p.id !== a.id && !p.bankrupt && !p.isComputer);
   const [target, setTarget] = useState(targets[0]?.id ?? "");
   const [offerPropertyId, setOffer] = useState("");
   const [requestPropertyId, setRequest] = useState("");
