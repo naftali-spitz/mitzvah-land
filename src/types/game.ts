@@ -48,7 +48,10 @@ export interface Space {
   buildingCost?: number;
   tax?: number;
 }
+export type AiDifficulty = 'easy' | 'medium' | 'hard';
 export interface Player {
+  isComputer?: boolean;
+  aiDifficulty?: AiDifficulty;
   id: string;
   name: string;
   token: string;
