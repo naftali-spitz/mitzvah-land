@@ -41,7 +41,7 @@ export function GameScreen() {
   useEffect(() => {
     if (s.phase !== "MOVING" || s.pendingSteps <= 0) return;
     const t = setTimeout(
-      () => s.stepMove(),
+      () => s.stepMove(useReducedMovement),
       movementTiming(useReducedMovement).stepMs,
     );
     return () => clearTimeout(t);
