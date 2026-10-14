@@ -57,7 +57,7 @@ interface GameState {
   settings: Settings;
   setupLang: (lang: Lang) => void;
   newGame: (
-    players: Pick<Player, "name" | "token" | "color">[],
+    players: Pick<Player, "name" | "token" | "color" | "isComputer" | "aiDifficulty">[],
     settings?: Partial<Settings>,
   ) => void;
   resetGame: () => void;
@@ -163,6 +163,8 @@ export const useGameStore = create<GameState>()(
           const ps = input.map((p, i) => ({
             id: `p${i + 1}`,
             name: p.name || `Player ${i + 1}`,
+            isComputer: !!p.isComputer,
+            aiDifficulty: p.isComputer ? p.aiDifficulty ?? "medium" : undefined,
             token: p.token,
             color: p.color || colors[i],
             money: 1500,
@@ -990,6 +992,7 @@ export const useGameStore = create<GameState>()(
           if (
             !b ||
             b.bankrupt ||
+            b.isComputer ||
             a.money < d.offerCash ||
             b.money < d.requestCash
           )
