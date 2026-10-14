@@ -25,7 +25,7 @@ describe("compact left utility rail", () => {
       })));
       const nav = host.querySelector("nav.utility-rail");
       expect(nav?.getAttribute("aria-label")).toBe("Game utilities");
-      const buttons = [...(nav?.querySelectorAll("button.utility-button") ?? [])];
+      const buttons = [...(nav?.querySelectorAll<HTMLButtonElement>("button.utility-button") ?? [])];
       expect(buttons).toHaveLength(6);
       expect(buttons.map(b => b.getAttribute("aria-label"))).toEqual([
         "Mute sound", "Game rules", "Game history", "Change language", "Fullscreen", "New game",
