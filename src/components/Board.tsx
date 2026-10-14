@@ -1,4 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { movementTiming } from "../engine/movement";
 import { board, groupColors } from "../data/board";
 import { useGameStore } from "../store/gameStore";
 import { CurrencyIcon } from "./CurrencyIcon";
@@ -28,11 +30,99 @@ function icon(type: string) {
     )[type] ?? ""
   );
 }
+type TileAnchor = { x: number; y: number };
+
+/** Keep each piece mounted in one stable layer while it travels between squares.
+ * Mounting it inside each new square makes it disappear and flash during hops.
+ */
+function BoardPieces({
+  positions,
+  players,
+  activePlayerIndex,
+  moving,
+  reduced,
+}: {
+  positions: Record<number, TileAnchor>;
+  players: ReturnType<typeof useGameStore.getState>["players"];
+  activePlayerIndex: number;
+  moving: boolean;
+  reduced: boolean;
+}) {
+  const { slideSeconds } = movementTiming(reduced);
+  return (
+    <div className="board-piece-layer" aria-label="Player positions">
+      {players.filter(p => !p.bankrupt).map(player => {
+        const tile = positions[player.position];
+        if (!tile) return null;
+        const neighbors = players.filter(p => !p.bankrupt && p.position === player.position);
+        const offset = neighbors.findIndex(p => p.id === player.id);
+        return (
+          <motion.div
+            key={player.id}
+            initial={false}
+            className={"token board-piece " + (players[activePlayerIndex]?.id === player.id ? "active-token" : "")}
+            data-player-id={player.id}
+            data-space-index={player.position}
+            title={player.name}
+            aria-label={player.name}
+            style={{ background: player.color, zIndex: 20 + offset }}
+            animate={{
+              x: tile.x + (offset % 3) * 14,
+              y: tile.y - Math.floor(offset / 3) * 16,
+            }}
+            transition={{
+              duration: moving && players[activePlayerIndex]?.id === player.id ? slideSeconds : 0,
+              ease: "easeInOut",
+            }}
+          >
+            {player.token}
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
-  const { lang, players, ownership, activePlayerIndex } = useGameStore();
+  const { lang, players, ownership, activePlayerIndex, phase, settings } = useGameStore();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [positions, setPositions] = useState<Record<number, TileAnchor>>({});
+  const prefersReducedMotion = useReducedMotion();
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const measure = () => {
+      const base = grid.getBoundingClientRect();
+      if (!base.width || !base.height) return;
+      const measured: Record<number, TileAnchor> = {};
+      grid.querySelectorAll<HTMLElement>("[data-board-index]").forEach(tile => {
+        const box = tile.getBoundingClientRect();
+        measured[Number(tile.dataset.boardIndex)] = {
+          x: box.left - base.left + 5,
+          y: box.bottom - base.top - 25,
+        };
+      });
+      setPositions(old => {
+        const keys = Object.keys(measured);
+        if (keys.length === Object.keys(old).length &&
+          keys.every(key => measured[Number(key)].x === old[Number(key)].x &&
+                            measured[Number(key)].y === old[Number(key)].y)) return old;
+        return measured;
+      });
+    };
+    measure();
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    resize?.observe(grid);
+    window.addEventListener("resize", measure);
+    return () => {
+      resize?.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
   return (
     <div className="board-shell">
-      <div className="board-grid">
+      <div className="board-grid" ref={gridRef}>
         <div className="board-center">
           <div className="sun-orbit" />
           <div className="hills hill-a" />
@@ -59,9 +149,6 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
         {board.map((space) => {
           const own = ownership[space.id];
           const owner = players.find((p) => p.id === own?.ownerId);
-          const here = players.filter(
-            (p) => !p.bankrupt && p.position === space.index,
-          );
           const groupSpaces = space.group
             ? board.filter(
                 (candidate) =>
@@ -83,6 +170,7 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
           return (
             <div
               key={space.id}
+              data-board-index={space.index}
               role={inspectable ? "button" : undefined}
               tabIndex={inspectable ? 0 : undefined}
               onClick={inspectable ? () => onInspect(space.id) : undefined}
@@ -195,22 +283,19 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
                   {ux("mortgage", lang)}
                 </div>
               )}
-              <div className="tokens">
-                {here.map((p, n) => (
-                  <motion.div
-                    layoutId={`token-${p.id}`}
-                    key={p.id}
-                    className={`token ${players[activePlayerIndex]?.id === p.id ? "active-token" : ""}`}
-                    style={{ background: p.color, zIndex: 10 + n }}
-                    title={p.name}
-                  >
-                    {p.token}
-                  </motion.div>
-                ))}
-              </div>
+
             </div>
           );
         })}
+        {Object.keys(positions).length > 0 && (
+          <BoardPieces
+            positions={positions}
+            players={players}
+            activePlayerIndex={activePlayerIndex}
+            moving={phase === "MOVING" || phase === "RESOLVING"}
+            reduced={settings.reducedMotion || !!prefersReducedMotion}
+          />
+        )}
       </div>
     </div>
   );

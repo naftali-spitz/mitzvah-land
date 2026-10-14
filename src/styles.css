@@ -51,3 +51,10 @@
 
 /* Negotiation between humans and computer players */
 .trade-help{display:block;color:#6f715f;font-size:.78rem;line-height:1.5;margin:8px 0 12px}.trade-feedback{color:#963b32;background:#f6e4d9;padding:9px 12px;border-radius:9px;font-size:.82rem;font-weight:800}.trade-offer-summary{display:grid;grid-template-columns:1fr 36px 1fr;align-items:center;gap:8px;margin:16px 0}.trade-offer-summary>div:not(.trade-arrow){background:#f4e9d5;border:1px solid #e4d7c4;border-radius:12px;padding:14px;min-height:100px}.trade-offer-summary p{font-weight:800;min-height:20px}.computer-trade-offer{width:min(720px,92vw)}
+
+/* Each piece stays mounted while crossing squares. The layer prevents tiles'
+   overflow:hidden from clipping the moving piece midway through a hop. */
+.board-piece-layer{position:absolute;inset:0;z-index:12;pointer-events:none;overflow:visible}
+.board-piece{position:absolute;top:0;left:0;display:grid;place-items:center;width:22px;height:22px;will-change:transform;box-shadow:0 1px 5px #0007;border:1.5px solid #fff}
+.board-piece.active-token{outline:2px solid #efca69;outline-offset:1px;box-shadow:0 2px 8px #0008,0 0 6px #efca69a0}
+@media(prefers-reduced-motion:reduce){.board-piece{will-change:auto}}

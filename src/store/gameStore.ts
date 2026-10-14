@@ -25,6 +25,7 @@ import type {
 } from "../types/game";
 import { UX, localized } from "../data/ux";
 import { afterTradeOwnership, computerAcceptsTrade, tradeKey, validateTrade, type PendingTrade } from "../engine/trades";
+import { movementTiming } from "../engine/movement";
 
 interface Settings {
   freeParkingJackpot: boolean;
@@ -66,7 +67,7 @@ interface GameState {
   ) => void;
   resetGame: () => void;
   rollDice: (forced?: [number, number]) => void;
-  stepMove: () => void;
+  stepMove: (reducedMotion?: boolean) => void;
   resolveCurrentSpace: () => void;
   buyPendingProperty: () => void;
   startAuction: () => void;
@@ -366,7 +367,7 @@ export const useGameStore = create<GameState>()(
           });
           get().addLog(`${p.name} rolled ${dice[0]} + ${dice[1]} = ${total}.`);
         },
-        stepMove: () => {
+        stepMove: (reducedMotion) => {
           const s = get();
           if (s.phase !== "MOVING" || s.pendingSteps <= 0) return;
           const p = s.players[s.activePlayerIndex];
@@ -394,7 +395,7 @@ export const useGameStore = create<GameState>()(
               amount: START_SALARY,
               reason: UX.goSalary,
             });
-          if (left === 0) setTimeout(() => get().resolveCurrentSpace(), 0);
+          if (left === 0) setTimeout(() => get().resolveCurrentSpace(), movementTiming(reducedMotion ?? s.settings.reducedMotion).landingMs);
         },
         resolveCurrentSpace: () => {
           const s = get();
