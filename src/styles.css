@@ -58,3 +58,152 @@
 .board-piece{position:absolute;top:0;left:0;display:grid;place-items:center;width:22px;height:22px;will-change:transform;box-shadow:0 1px 5px #0007;border:1.5px solid #fff}
 .board-piece.active-token{outline:2px solid #efca69;outline-offset:1px;box-shadow:0 2px 8px #0008,0 0 6px #efca69a0}
 @media(prefers-reduced-motion:reduce){.board-piece{will-change:auto}}
+
+/* Game workspace: fixed square board at maximum comfortable laptop size.
+   Direction is explicitly LTR for layout order: utilities LEFT, board CENTER,
+   gameplay RIGHT. Each content region uses the chosen game language. */
+body{min-width:0}
+.game-screen{height:100dvh;min-height:0;padding:8px;overflow:hidden}
+.game-screen .game-layout{
+  display:grid;
+  grid-template-columns:52px minmax(0,1fr) 258px;
+  gap:10px;
+  align-items:start;
+  max-width:1640px;
+  width:100%;
+  margin-inline:auto;
+  direction:ltr;
+}
+.game-screen .board-column{min-width:0;display:flex;align-items:start;justify-content:center}
+.game-screen .board-shell{
+  width:min(100%,calc(100dvh - 16px));
+  aspect-ratio:1/1;
+  height:auto;
+  max-height:none;
+  min-height:0;
+  margin:0 auto;
+  padding:clamp(5px,.7vw,12px);
+}
+.game-screen .side-panel{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-height:calc(100dvh - 16px);
+  min-width:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
+  scrollbar-width:thin;
+  scrollbar-color:#719181 #15362b;
+  padding:0 2px 4px 0;
+}
+.utility-rail{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  width:52px;
+  padding:6px 4px;
+  border-radius:15px;
+  background:#0e2923ee;
+  border:1px solid #ffffff1a;
+  box-shadow:0 8px 28px #0003;
+  direction:ltr;
+}
+.utility-button{
+  position:relative;
+  flex:0 0 auto;
+  width:44px;
+  height:44px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:1px solid #ffffff20;
+  border-radius:10px;
+  background:#25493f;
+  color:#f9efd8;
+  transition:background .14s ease,border-color .14s ease;
+}
+.utility-button:hover,.utility-button.is-active{
+  background:#38685b;
+  border-color:#d9b65a;
+  color:#fff3cd;
+}
+.utility-button:focus-visible{
+  outline:3px solid #f3cb69;
+  outline-offset:2px;
+}
+.utility-button.utility-danger{margin-top:8px;border-color:#a1746155}
+.utility-button.utility-danger:hover{background:#814438}
+.utility-language-dot{
+  position:absolute;
+  inset-inline-end:2px;
+  bottom:2px;
+  border-radius:5px;
+  min-width:11px;
+  height:12px;
+  font-size:9px;
+  line-height:12px;
+  text-align:center;
+  font-weight:900;
+  color:#193a30;
+  background:#e5c770;
+}
+.current-turn-summary{
+  color:#243b32;
+  background:#f7eedb;
+  border:1px solid #d8c5a0;
+  border-radius:13px;
+  padding:8px 10px;
+  min-width:0;
+}
+.turn-summary-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:6px;
+  color:#74603d;
+  font-size:.63rem;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+.turn-summary-game{font-size:.63rem;color:#42705f}
+.turn-summary-player{display:flex;align-items:center;gap:8px;margin-top:5px;min-width:0}
+.turn-summary-player strong{font-size:.92rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.turn-summary-token{
+  width:27px;
+  height:27px;
+  border-radius:50%;
+  flex:none;
+  display:grid;
+  place-items:center;
+  border:2px solid #ffffffce;
+  box-shadow:0 1px 3px #0003;
+}
+.game-screen .activity-log{
+  top:8px;
+  left:calc(52px + 16px);
+  right:auto;
+  inset-inline-end:auto;
+  max-width:min(360px,calc(100vw - 86px));
+}
+@media(max-width:1050px){
+  .game-screen .game-layout{grid-template-columns:52px minmax(0,1fr) 224px;gap:8px}
+  .game-screen .player-card{padding:6px 8px}
+  .game-screen .players-list{gap:5px}
+}
+@media(max-width:880px){
+  .game-screen{height:auto;min-height:100dvh;overflow:visible}
+  .game-screen .game-layout{
+    grid-template-columns:52px minmax(0,1fr);
+    grid-template-areas:"rail board" "rail gameplay";
+  }
+  .game-screen .utility-rail{grid-area:rail;position:sticky;top:8px}
+  .game-screen .board-column{grid-area:board}
+  .game-screen .board-shell{width:min(100%,calc(100dvh - 16px))}
+  .game-screen .side-panel{grid-area:gameplay;max-height:none;overflow:visible}
+  .game-screen .activity-log{left:65px}
+}
+@media(prefers-reduced-motion:reduce){
+  .utility-button{transition:none}
+}

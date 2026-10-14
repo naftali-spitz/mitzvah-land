@@ -21,6 +21,7 @@ import { playSfx, preloadSfx, stopSfx, unlockSfx } from "../audio/sfx";
 import { AssetCardModal } from "./AssetCard";
 import { TransactionOverlay } from "./TransactionOverlay";
 import { AiController } from "./AiController";
+import { UtilityRail } from "./UtilityRail";
 
 export function GameScreen() {
   const s = useGameStore();
@@ -30,6 +31,7 @@ export function GameScreen() {
   const [rulesOpen, setRulesOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [confirmQuit, setConfirmQuit] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [inspectedAssetId, setInspectedAssetId] = useState<string>();
   const movementSfxActive = useRef(false);
   const prefersReducedMotion = useReducedMotion();
@@ -38,6 +40,22 @@ export function GameScreen() {
   useEffect(() => {
     preloadSfx();
   }, []);
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch(() => undefined);
+    } else {
+      void document.documentElement.requestFullscreen?.().catch(() => undefined);
+    }
+  };
+  const cycleLanguage = () => {
+    const next = s.lang === "he" ? "en" : s.lang === "en" ? "bi" : "he";
+    s.setupLang(next);
+  };
   useEffect(() => {
     if (s.phase !== "MOVING" || s.pendingSteps <= 0) return;
     const t = setTimeout(
@@ -65,55 +83,38 @@ export function GameScreen() {
   return (
     <main className="game-screen" dir={s.lang === "he" ? "rtl" : "ltr"}>
       <AiController />
-      <header className="topbar">
-        <div className="mini-logo">
-          <CurrencyIcon size={28} />
-          <span>
-            <b>ארץ המצוות</b>
-            <small>MITZVAH LAND</small>
-          </span>
-        </div>
-        <div className="turn-title">
-          <span>{label("תור", "TURN")}</span>
-          <b style={{ color: p.color }}>
-            {p.token} {p.name} {p.isComputer ? "🤖" : ""}
-          </b>
-          <small>
-            {label("סיבוב", "Turn")} {s.turnNumber}
-          </small>
-        </div>
-        <div className="top-actions">
-          <button
-            className="sound-toggle"
-            aria-label={
-              s.settings.sound
-                ? label("השתק צלילים", "Mute sound effects")
-                : label("הפעל צלילים", "Enable sound effects")
-            }
-            title={
-              s.settings.sound
-                ? label("השתק צלילים", "Mute sound effects")
-                : label("הפעל צלילים", "Enable sound effects")
-            }
-            onClick={() => {
-              const enabled = !s.settings.sound;
-              s.setSoundEnabled(enabled);
-              if (enabled) unlockSfx();
-              else stopSfx();
-            }}
-          >
-            {s.settings.sound ? "🔊" : "🔇"}
-          </button>
-          <button onClick={() => setRulesOpen(true)}>?</button>
-          <button onClick={() => setLogOpen((v) => !v)}>☷</button>
-          <button onClick={() => setConfirmQuit(true)}>⌂</button>
-        </div>
-      </header>
-      <div className="game-layout">
-        <section className="board-column">
+      <div className="game-layout" dir="ltr">
+        <UtilityRail
+          lang={s.lang}
+          soundEnabled={s.settings.sound}
+          historyOpen={logOpen}
+          fullscreen={isFullscreen}
+          onSound={() => {
+            const enabled = !s.settings.sound;
+            s.setSoundEnabled(enabled);
+            if (enabled) unlockSfx();
+            else stopSfx();
+          }}
+          onRules={() => setRulesOpen(true)}
+          onHistory={() => setLogOpen(v => !v)}
+          onLanguage={cycleLanguage}
+          onFullscreen={toggleFullscreen}
+          onNewGame={() => setConfirmQuit(true)}
+        />
+        <section className="board-column" dir={s.lang === "he" ? "rtl" : "ltr"}>
           <Board onInspect={setInspectedAssetId} />
         </section>
-        <aside className="side-panel">
+        <aside className="side-panel" dir={s.lang === "he" ? "rtl" : "ltr"}>
+          <div className="current-turn-summary" aria-label={label("תור נוכחי", "Current turn")}>
+            <div className="turn-summary-heading">
+              <span>{label("תור", "TURN")} {s.turnNumber}</span>
+              <span className="turn-summary-game">ארץ המצוות</span>
+            </div>
+            <div className="turn-summary-player">
+              <span className="turn-summary-token" style={{ background: p.color }}>{p.token}</span>
+              <strong>{p.name}{p.isComputer ? " 🤖" : ""}</strong>
+            </div>
+          </div>
           <div className="players-list">
             {s.players.map((pl, i) => {
               const props = ownedSpaces(pl.id, s.ownership);
