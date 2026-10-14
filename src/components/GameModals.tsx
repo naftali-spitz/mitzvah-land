@@ -1,3 +1,4 @@
+import { tradableSpace } from '../engine/trades';
 import { useMemo, useState } from "react";
 import { board, groupColors } from "../data/board";
 import { GROUP_LABELS, UX, ux } from "../data/ux";
@@ -549,17 +550,18 @@ export function Management({
 export function TradeModal({ onClose }: { onClose: () => void }) {
   const s = useGameStore();
   const a = s.players[s.activePlayerIndex];
-  const targets = s.players.filter((p) => p.id !== a.id && !p.bankrupt && !p.isComputer);
+  const targets = s.players.filter(p => p.id !== a.id && !p.bankrupt);
   const [target, setTarget] = useState(targets[0]?.id ?? "");
   const [offerPropertyId, setOffer] = useState("");
   const [requestPropertyId, setRequest] = useState("");
   const [offerCash, setOfferCash] = useState(0);
   const [requestCash, setRequestCash] = useState(0);
-  const b = s.players.find((p) => p.id === target);
-  const aProps = ownedSpaces(a.id, s.ownership);
-  const bProps = b ? ownedSpaces(b.id, s.ownership) : [];
-  const offeredSpace = aProps.find((space) => space.id === offerPropertyId);
-  const requestedSpace = bProps.find((space) => space.id === requestPropertyId);
+  const [feedback, setFeedback] = useState("");
+  const b = s.players.find(p => p.id === target);
+  const aProps = ownedSpaces(a.id, s.ownership).filter(sp => tradableSpace(sp.id, a.id, s.ownership));
+  const bProps = b ? ownedSpaces(b.id, s.ownership).filter(sp => tradableSpace(sp.id, b.id, s.ownership)) : [];
+  const offeredSpace = aProps.find(sp => sp.id === offerPropertyId);
+  const requestedSpace = bProps.find(sp => sp.id === requestPropertyId);
   const draft: TradeDraft = {
     targetId: target,
     offerPropertyId: offerPropertyId || undefined,
@@ -567,95 +569,97 @@ export function TradeModal({ onClose }: { onClose: () => void }) {
     offerCash,
     requestCash,
   };
+  const makeOffer = () => {
+    const result = s.proposeTrade(draft);
+    if (result === "accepted") onClose();
+    else if (result === "declined") setFeedback(ui("המחשב דחה את ההצעה. נסו לשפר אותה.", "The computer declined. Try offering more value.", s.lang));
+    else if (result === "invalid") setFeedback(ui("ההצעה אינה תקינה. בדקו את הכסף והנכסים.", "Invalid offer. Check the cash and property selections.", s.lang));
+  };
   return (
     <Modal onClose={onClose}>
       <div className="trade">
         <h2>{ui("עסקה בין שחקנים", "PLAYER TRADE", s.lang)}</h2>
+        <p className="trade-help">{ui("בחרו שחקן, נכסים וכסף. המחשב מחליט אם העסקה משתלמת לו.", "Choose a player, assets and cash. Computers evaluate whether the offer benefits them.", s.lang)}</p>
         <label>
           {ui("עם", "With", s.lang)}
-          <select value={target} onChange={(e) => setTarget(e.target.value)}>
-            {targets.map((p) => (
-              <option value={p.id} key={p.id}>
-                {p.name}
-              </option>
-            ))}
+          <select value={target} onChange={e => { setTarget(e.target.value); setRequest(""); setRequestCash(0); setFeedback(""); }}>
+            {targets.map(p => <option value={p.id} key={p.id}>{p.isComputer ? "🤖 " : ""}{p.name}</option>)}
           </select>
         </label>
         <div className="trade-cols">
           <div>
-            <h3>
-              {a.name} {ui("נותן", "GIVES", s.lang)}
-            </h3>
-            <select
-              value={offerPropertyId}
-              onChange={(e) => setOffer(e.target.value)}
-            >
-              <option value="">
-                — {ui("ללא נכס", "No property", s.lang)} —
-              </option>
-              {aProps.map((sp) => (
-                <option value={sp.id} key={sp.id}>
-                  {sp.name.en}
-                </option>
-              ))}
+            <h3>{a.name} {ui("נותן", "GIVES", s.lang)}</h3>
+            <select value={offerPropertyId} onChange={e => { setOffer(e.target.value); setFeedback(""); }}>
+              <option value="">— {ui("ללא נכס", "No property", s.lang)} —</option>
+              {aProps.map(sp => <option key={sp.id} value={sp.id}>{sp.name.en}</option>)}
             </select>
-            <label>
-              {ui("מזומן", "Cash", s.lang)}
-              <input
-                type="number"
-                min="0"
-                max={a.money}
-                value={offerCash}
-                onChange={(e) => setOfferCash(Math.max(0, +e.target.value))}
-              />
+            <label>{ui("מזומן", "Cash", s.lang)}
+              <input type="number" min="0" max={a.money} value={offerCash} onChange={e => { setOfferCash(Math.max(0, +e.target.value)); setFeedback(""); }}/>
             </label>
           </div>
           <div className="trade-arrow">⇄</div>
           <div>
-            <h3>
-              {b?.name} {ui("נותן", "GIVES", s.lang)}
-            </h3>
-            <select
-              value={requestPropertyId}
-              onChange={(e) => setRequest(e.target.value)}
-            >
-              <option value="">
-                — {ui("ללא נכס", "No property", s.lang)} —
-              </option>
-              {bProps.map((sp) => (
-                <option value={sp.id} key={sp.id}>
-                  {sp.name.en}
-                </option>
-              ))}
+            <h3>{b?.name} {ui("נותן", "GIVES", s.lang)}</h3>
+            <select value={requestPropertyId} onChange={e => { setRequest(e.target.value); setFeedback(""); }}>
+              <option value="">— {ui("ללא נכס", "No property", s.lang)} —</option>
+              {bProps.map(sp => <option key={sp.id} value={sp.id}>{sp.name.en}</option>)}
             </select>
-            <label>
-              {ui("מזומן", "Cash", s.lang)}
-              <input
-                type="number"
-                min="0"
-                max={b?.money ?? 0}
-                value={requestCash}
-                onChange={(e) => setRequestCash(Math.max(0, +e.target.value))}
-              />
+            <label>{ui("מזומן", "Cash", s.lang)}
+              <input type="number" min="0" max={b?.money ?? 0} value={requestCash} onChange={e => { setRequestCash(Math.max(0, +e.target.value)); setFeedback(""); }}/>
             </label>
           </div>
         </div>
         {(offeredSpace || requestedSpace) && (
           <div className="trade-asset-previews">
-            {offeredSpace && <AssetInformation space={offeredSpace} />}
-            {requestedSpace && <AssetInformation space={requestedSpace} />}
+            {offeredSpace && <AssetInformation space={offeredSpace}/>}
+            {requestedSpace && <AssetInformation space={requestedSpace}/>}
           </div>
         )}
-        <button
-          className="primary huge"
-          onClick={() => {
-            s.executeTrade(draft);
-            onClose();
-          }}
-        >
-          {ui("שני הצדדים מאשרים", "BOTH PLAYERS CONFIRM", s.lang)}
+        <small className="trade-help">{ui("נכס ממושכן או בקבוצה עם בניינים לא ניתן להעביר עד להסרת ההגבלה.", "Mortgaged properties and color groups with buildings must be cleared before trading.", s.lang)}</small>
+        {feedback && <p role="status" className="trade-feedback">{feedback}</p>}
+        <button className="primary huge" disabled={!b} onClick={makeOffer}>
+          {b?.isComputer ? ui("שלח הצעה למחשב 🤖", "OFFER TO COMPUTER 🤖", s.lang) : ui("שני הצדדים מאשרים", "BOTH PLAYERS CONFIRM", s.lang)}
         </button>
       </div>
     </Modal>
   );
+}
+
+/** A computer proposes on its turn; the human recipient must explicitly decide. */
+export function ComputerTradeOfferModal() {
+  const s = useGameStore();
+  const pending = s.pendingTrade;
+  if (!pending) return null;
+  const sender = s.players.find(p => p.id === pending.initiatorId);
+  const target = s.players.find(p => p.id === pending.draft.targetId);
+  if (!sender || !target) return null;
+  const offer = pending.draft.offerPropertyId ? board.find(sp => sp.id === pending.draft.offerPropertyId) : undefined;
+  const request = pending.draft.requestPropertyId ? board.find(sp => sp.id === pending.draft.requestPropertyId) : undefined;
+  return <Modal onClose={() => s.respondToTrade(false)}>
+    <div className="trade computer-trade-offer">
+      <h2>🤖 {ui("הצעת עסקה מהמחשב", "COMPUTER TRADE OFFER", s.lang)}</h2>
+      <p>{sender.name} {ui("מציע עסקה ל", "offers a trade to", s.lang)} {target.name}:</p>
+      <div className="trade-offer-summary">
+        <div>
+          <b>{sender.name} {ui("נותן", "GIVES", s.lang)}</b>
+          <p>{offer ? (s.lang === "en" ? offer.name.en : offer.name.he) : "—"}</p>
+          {pending.draft.offerCash > 0 && <Money value={pending.draft.offerCash}/>}
+        </div>
+        <div className="trade-arrow">⇄</div>
+        <div>
+          <b>{target.name} {ui("נותן", "GIVES", s.lang)}</b>
+          <p>{request ? (s.lang === "en" ? request.name.en : request.name.he) : "—"}</p>
+          {pending.draft.requestCash > 0 && <Money value={pending.draft.requestCash}/>}
+        </div>
+      </div>
+      {(offer || request) && <div className="trade-asset-previews">
+        {offer && <AssetInformation space={offer}/>}
+        {request && <AssetInformation space={request}/>}
+      </div>}
+      <div className="modal-actions">
+        <button className="primary" onClick={() => s.respondToTrade(true)}>{ui("קבל עסקה", "ACCEPT TRADE", s.lang)}</button>
+        <button className="secondary" onClick={() => s.respondToTrade(false)}>{ui("דחה עסקה", "DECLINE", s.lang)}</button>
+      </div>
+    </div>
+  </Modal>;
 }

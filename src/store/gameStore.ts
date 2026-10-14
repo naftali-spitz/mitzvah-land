@@ -24,6 +24,7 @@ import type {
   TradeDraft,
 } from "../types/game";
 import { UX, localized } from "../data/ux";
+import { afterTradeOwnership, computerAcceptsTrade, tradeKey, validateTrade, type PendingTrade } from "../engine/trades";
 
 interface Settings {
   freeParkingJackpot: boolean;
@@ -54,6 +55,9 @@ interface GameState {
   winnerId?: string;
   turnNumber: number;
   freeParkingPot: number;
+  pendingTrade?: PendingTrade;
+  tradeAttemptedTurn: Record<string, number>;
+  tradeCooldowns: Record<string, number>;
   settings: Settings;
   setupLang: (lang: Lang) => void;
   newGame: (
@@ -80,7 +84,9 @@ interface GameState {
   setSoundEnabled: (enabled: boolean) => void;
   settleDebt: () => void;
   declareBankruptcy: () => void;
-  executeTrade: (draft: TradeDraft) => void;
+  executeTrade: (draft: TradeDraft) => boolean;
+  proposeTrade: (draft: TradeDraft) => "accepted" | "declined" | "pending" | "invalid";
+  respondToTrade: (accept: boolean) => boolean;
   addLog: (text: string) => void;
   dismissTransaction: () => void;
 }
@@ -136,6 +142,33 @@ export const useGameStore = create<GameState>()(
           logs: [{ id: uid(), text }, ...current.logs].slice(0, 80),
         }));
       };
+      const applyTrade = (fromId: string, draft: TradeDraft): boolean => {
+        const state = get();
+        if (state.currentCard || state.debt || validateTrade(state, fromId, draft)) return false;
+        const sender = state.players.find(p => p.id === fromId)!;
+        const target = state.players.find(p => p.id === draft.targetId)!;
+        set({
+          ownership: afterTradeOwnership(state, fromId, draft),
+          players: state.players.map(player =>
+            player.id === fromId
+              ? { ...player, money: player.money - draft.offerCash + draft.requestCash }
+              : player.id === target.id
+                ? { ...player, money: player.money + draft.offerCash - draft.requestCash }
+                : player),
+        });
+        const offer = draft.offerPropertyId ? board.find(sp => sp.id === draft.offerPropertyId)?.name.en : undefined;
+        const wanted = draft.requestPropertyId ? board.find(sp => sp.id === draft.requestPropertyId)?.name.en : undefined;
+        get().addLog(`${sender.name} ⇄ ${target.name}: trade completed${offer ? ` (gave ${offer})` : ""}${wanted ? ` (received ${wanted})` : ""}.`);
+        if (draft.offerCash > 0) recordTransaction({
+          from: sender.id, to: target.id, amount: draft.offerCash,
+          reason: localized("מזומן בעסקה", "Trade cash"), propertyId: draft.offerPropertyId,
+        });
+        if (draft.requestCash > 0) recordTransaction({
+          from: target.id, to: sender.id, amount: draft.requestCash,
+          reason: localized("מזומן בעסקה", "Trade cash"), propertyId: draft.requestPropertyId,
+        });
+        return true;
+      };
       return {
         started: false,
         lang: "bi",
@@ -153,6 +186,8 @@ export const useGameStore = create<GameState>()(
         transactionQueue: [],
         turnNumber: 1,
         freeParkingPot: 0,
+        tradeAttemptedTurn: {},
+        tradeCooldowns: {},
         settings: defaults,
         setupLang: (lang) => set({ lang }),
         addLog: (text) =>
@@ -194,6 +229,9 @@ export const useGameStore = create<GameState>()(
             winnerId: undefined,
             turnNumber: 1,
             freeParkingPot: 0,
+            pendingTrade: undefined,
+            tradeAttemptedTurn: {},
+            tradeCooldowns: {},
             settings: {
               ...defaults,
               ...settings,
@@ -213,6 +251,9 @@ export const useGameStore = create<GameState>()(
             debt: undefined,
             auction: undefined,
             currentCard: undefined,
+            pendingTrade: undefined,
+            tradeAttemptedTurn: {},
+            tradeCooldowns: {},
           }),
         rollDice: (forced) => {
           const s = get();
@@ -985,60 +1026,55 @@ export const useGameStore = create<GameState>()(
           });
           get().addLog(`${p.name} went bankrupt.`);
         },
-        executeTrade: (d) => {
-          const s = get();
-          const a = s.players[s.activePlayerIndex];
-          const b = s.players.find((x) => x.id === d.targetId);
-          if (
-            !b ||
-            b.bankrupt ||
-            b.isComputer ||
-            a.money < d.offerCash ||
-            b.money < d.requestCash
-          )
-            return;
-          let own = { ...s.ownership };
-          if (d.offerPropertyId && own[d.offerPropertyId]?.ownerId === a.id)
-            own[d.offerPropertyId] = {
-              ...own[d.offerPropertyId],
-              ownerId: b.id,
-            };
-          if (d.requestPropertyId && own[d.requestPropertyId]?.ownerId === b.id)
-            own[d.requestPropertyId] = {
-              ...own[d.requestPropertyId],
-              ownerId: a.id,
-            };
-          set({
-            ownership: own,
-            players: s.players.map((x) =>
-              x.id === a.id
-                ? { ...x, money: x.money - d.offerCash + d.requestCash }
-                : x.id === b.id
-                  ? { ...x, money: x.money + d.offerCash - d.requestCash }
-                  : x,
-            ),
-          });
-          get().addLog(`${a.name} completed a trade with ${b.name}.`);
-          if (d.offerCash > 0)
-            recordTransaction({
-              from: a.id,
-              to: b.id,
-              amount: d.offerCash,
-              reason: localized("מזומן בעסקה", "Trade cash"),
-              propertyId: d.offerPropertyId,
+        executeTrade: (draft) => {
+          const state = get();
+          const player = state.players[state.activePlayerIndex];
+          if (!player || player.isComputer || state.pendingTrade) return false;
+          const target = state.players.find(p => p.id === draft.targetId);
+          if (!target || target.isComputer) return false;
+          return applyTrade(player.id, draft);
+        },
+        proposeTrade: (draft) => {
+          const state = get();
+          const from = state.players[state.activePlayerIndex];
+          const to = state.players.find(p => p.id === draft.targetId);
+          if (!from || !to || state.phase !== "MANAGEMENT" || state.debt || state.currentCard ||
+              state.pendingTrade || validateTrade(state, from.id, draft)) return "invalid";
+          if (from.isComputer) {
+            if (state.tradeAttemptedTurn?.[from.id] === state.turnNumber) return "invalid";
+            set({
+              tradeAttemptedTurn: { ...(state.tradeAttemptedTurn ?? {}), [from.id]: state.turnNumber },
+              tradeCooldowns: { ...(state.tradeCooldowns ?? {}), [tradeKey(from.id, draft)]: state.turnNumber },
             });
-          if (d.requestCash > 0)
-            recordTransaction({
-              from: b.id,
-              to: a.id,
-              amount: d.requestCash,
-              reason: localized("מזומן בעסקה", "Trade cash"),
-              propertyId: d.requestPropertyId,
-            });
+          }
+          if (to.isComputer) {
+            if (!computerAcceptsTrade(get(), from.id, draft)) {
+              get().addLog(`${to.name} declined a trade offered by ${from.name}.`);
+              return "declined";
+            }
+            return applyTrade(from.id, draft) ? "accepted" : "invalid";
+          }
+          if (from.isComputer) {
+            set({ pendingTrade: { initiatorId: from.id, draft } });
+            get().addLog(`${from.name} proposed a trade to ${to.name}.`);
+            return "pending";
+          }
+          return applyTrade(from.id, draft) ? "accepted" : "invalid";
+        },
+        respondToTrade: (accept) => {
+          const state = get();
+          const pending = state.pendingTrade;
+          if (!pending) return false;
+          set({ pendingTrade: undefined });
+          if (!accept) {
+            get().addLog(`${state.players.find(p => p.id === pending.draft.targetId)?.name ?? "Player"} declined a trade.`);
+            return true;
+          }
+          return applyTrade(pending.initiatorId, pending.draft);
         },
         endTurn: () => {
           const s = get();
-          if (!["MANAGEMENT"].includes(s.phase) || s.currentCard || s.debt)
+          if (!["MANAGEMENT"].includes(s.phase) || s.currentCard || s.debt || s.pendingTrade)
             return;
           const p = s.players[s.activePlayerIndex];
           if (s.lastRollWasDouble && !p.inJail) {

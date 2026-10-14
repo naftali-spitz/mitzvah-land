@@ -10,6 +10,7 @@ import {
   Management,
   PropertyDecision,
   TradeModal,
+  ComputerTradeOfferModal,
 } from "./GameModals";
 import { Modal, Money, ui } from "./ui";
 import { CurrencyIcon } from "./CurrencyIcon";
@@ -205,7 +206,7 @@ export function GameScreen() {
               {label("🏠 נכסים", "🏠 PROPERTIES")}
             </button>
             <button
-              disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !s.players.some(pl => pl.id !== p.id && !pl.bankrupt && !pl.isComputer)}
+              disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !s.players.some(pl => pl.id !== p.id && !pl.bankrupt)}
               onClick={() => setTradeOpen(true)}
             >
               {label("⇄ עסקה", "⇄ TRADE")}
@@ -263,6 +264,7 @@ export function GameScreen() {
         </Modal>
       )}
       {tradeOpen && <TradeModal onClose={() => setTradeOpen(false)} />}
+      {s.pendingTrade && <ComputerTradeOfferModal />}
       {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
       {confirmQuit && (
         <Modal onClose={() => setConfirmQuit(false)}>

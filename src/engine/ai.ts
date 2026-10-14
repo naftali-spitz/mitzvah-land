@@ -1,9 +1,11 @@
 import { board } from '../data/board';
+import { proposeComputerTrade, type PendingTrade } from './trades';
 import { canBuild, canMortgage, canSellBuilding, groupSpaces, ownsGroup } from './rules';
-import type { AuctionState, Card, Debt, GamePhase, Ownership, Player, Space } from '../types/game';
+import type { AuctionState, Card, Debt, GamePhase, Ownership, Player, Space, TradeDraft } from '../types/game';
 
 export type AiAction =
   | { type: 'roll' | 'pay-jail' | 'use-card' | 'buy' | 'auction' | 'dismiss-card' | 'settle' | 'bankrupt' | 'end' | 'finish-auction' }
+  | { type: 'offer-trade'; draft: TradeDraft }
   | { type: 'bid' | 'pass'; playerId: string; amount?: number }
   | { type: 'mortgage' | 'sell-building' | 'build' | 'unmortgage'; spaceId: string };
 
@@ -16,6 +18,10 @@ export interface AiSnapshot {
   currentCard?: Card;
   debt?: Debt;
   auction?: AuctionState;
+  pendingTrade?: PendingTrade;
+  turnNumber?: number;
+  tradeAttemptedTurn?: Record<string, number>;
+  tradeCooldowns?: Record<string, number>;
 }
 
 type Difficulty = NonNullable<Player['aiDifficulty']>;
@@ -63,6 +69,7 @@ function chooseAuctionAction(state: AiSnapshot): AiAction | null {
 }
 
 export function chooseAiAction(state: AiSnapshot): AiAction | null {
+  if (state.pendingTrade) return null;
   if (state.phase === 'AUCTION') return chooseAuctionAction(state);
   const player = state.players[state.activePlayerIndex];
   if (!player?.isComputer || player.bankrupt || state.phase === 'GAME_OVER') return null;
@@ -118,6 +125,10 @@ export function chooseAiAction(state: AiSnapshot): AiAction | null {
         && state.ownership[sp.id].mortgaged && sp.mortgage
         && player.money > Math.ceil(sp.mortgage * 1.1) + reserve);
       if (mortgaged) return { type: 'unmortgage', spaceId: mortgaged.id };
+    }
+    if (state.tradeAttemptedTurn?.[player.id] !== (state.turnNumber ?? 1)) {
+      const draft = proposeComputerTrade({ ...state, turnNumber: state.turnNumber ?? 1 }, player.id);
+      if (draft) return { type: 'offer-trade', draft };
     }
     return { type: 'end' };
   }

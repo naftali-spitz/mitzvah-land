@@ -34,6 +34,7 @@ export function AiController() {
         case 'sell-building': current.sellBuilding(next.spaceId); break;
         case 'build': current.build(next.spaceId); break;
         case 'unmortgage': current.unmortgage(next.spaceId); break;
+        case 'offer-trade': current.proposeTrade(next.draft); break;
         case 'end': current.endTurn(); break;
       }
     }, state.settings.reducedMotion ? 180 : 700);
