@@ -48,3 +48,6 @@
 
 /* Human/computer seats and bot visibility */
 .player-setup-fields{min-width:0;flex:1;display:flex;flex-direction:column;gap:5px}.player-setup-fields input{min-width:0;width:100%}.seat-options{display:flex;gap:5px;flex-wrap:wrap}.seat-options select{min-width:0;flex:1;background:#f8f2e7;color:#213b34;border:1px solid #cbbda6;border-radius:7px;padding:5px;font-size:.72rem;font-weight:700}.player-setup.computer-seat{background:#e8f0ec}.bot-tag{display:inline-block;background:#dce9e1;color:#315b51;border-radius:8px;padding:2px 5px;font-size:.58rem;white-space:nowrap;margin-inline-start:4px}.player-setup .setup-token{flex:none}
+
+/* Negotiation between humans and computer players */
+.trade-help{display:block;color:#6f715f;font-size:.78rem;line-height:1.5;margin:8px 0 12px}.trade-feedback{color:#963b32;background:#f6e4d9;padding:9px 12px;border-radius:9px;font-size:.82rem;font-weight:800}.trade-offer-summary{display:grid;grid-template-columns:1fr 36px 1fr;align-items:center;gap:8px;margin:16px 0}.trade-offer-summary>div:not(.trade-arrow){background:#f4e9d5;border:1px solid #e4d7c4;border-radius:12px;padding:14px;min-height:100px}.trade-offer-summary p{font-weight:800;min-height:20px}.computer-trade-offer{width:min(720px,92vw)}
