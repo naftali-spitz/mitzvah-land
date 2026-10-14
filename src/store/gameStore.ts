@@ -25,6 +25,7 @@ import type {
 } from "../types/game";
 import { UX, localized } from "../data/ux";
 import { afterTradeOwnership, computerAcceptsTrade, tradeKey, validateTrade, type PendingTrade } from "../engine/trades";
+import { movementTiming } from "../engine/movement";
 
 interface Settings {
   freeParkingJackpot: boolean;
@@ -394,7 +395,7 @@ export const useGameStore = create<GameState>()(
               amount: START_SALARY,
               reason: UX.goSalary,
             });
-          if (left === 0) setTimeout(() => get().resolveCurrentSpace(), 0);
+          if (left === 0) setTimeout(() => get().resolveCurrentSpace(), movementTiming(s.settings.reducedMotion).landingMs);
         },
         resolveCurrentSpace: () => {
           const s = get();
