@@ -144,7 +144,7 @@ export const useGameStore = create<GameState>()(
       };
       const applyTrade = (fromId: string, draft: TradeDraft): boolean => {
         const state = get();
-        if (state.phase !== "MANAGEMENT" || state.currentCard || state.debt || validateTrade(state, fromId, draft)) return false;
+        if (state.currentCard || state.debt || validateTrade(state, fromId, draft)) return false;
         const sender = state.players.find(p => p.id === fromId)!;
         const target = state.players.find(p => p.id === draft.targetId)!;
         set({
