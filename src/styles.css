@@ -207,3 +207,56 @@ body{min-width:0}
 @media(prefers-reduced-motion:reduce){
   .utility-button{transition:none}
 }
+
+
+/* Board feedback: short, readable effects without changing the board's footprint. */
+.space.owned-space{box-shadow:inset 0 -3px 0 var(--owner-color)}
+.space.board-event{z-index:3;animation:board-event-glow 1.05s ease-out}
+.space.board-event--mortgage,.space.board-event--sell{--event-glow:#bf654c}
+.space.board-event--purchase,.space.board-event--transfer,.space.board-event--build,.space.board-event--hotel,.space.board-event--unmortgage{--event-glow:#deb456}
+@keyframes board-event-glow{
+  0%{box-shadow:inset 0 0 0 2px var(--event-glow,#deb456),0 0 0 0 var(--event-glow,#deb456)}
+  35%{box-shadow:inset 0 0 0 3px var(--event-glow,#deb456),0 0 13px 4px #deb45699}
+  100%{box-shadow:inset 0 -3px 0 var(--owner-color,transparent),0 0 0 0 transparent}
+}
+.board-event-caption{
+  position:absolute;z-index:11;bottom:23px;left:3px;right:3px;
+  border:1px solid #f8deb0;border-radius:6px;background:#194b3ff0;color:#fff7df;
+  box-shadow:0 2px 9px #0006;padding:3px 1px;font-size:clamp(.43rem,.6vw,.64rem);
+  line-height:1.15;font-weight:900;text-align:center;pointer-events:none;
+  animation:board-event-caption 1.05s ease-out both
+}
+@keyframes board-event-caption{
+  0%{opacity:0;transform:translateY(7px) scale(.9)}
+  17%{opacity:1;transform:translateY(0) scale(1.05)}
+  34%,72%{opacity:1;transform:translateY(0) scale(1)}
+  100%{opacity:0;transform:translateY(-5px) scale(1)}
+}
+.space.tile-mortgaged::after{opacity:.55}
+.space .mortgaged{
+  inset:auto auto 2px 2px;width:auto;height:auto;max-width:calc(100% - 4px);
+  line-height:1.15;transform:rotate(-7deg);padding:2px 4px;font-size:clamp(.4rem,.52vw,.57rem);
+  border:1px solid #ffd6bb;box-shadow:0 1px 3px #0005;pointer-events:none
+}
+.space.board-event--mortgage .mortgaged{animation:board-stamp .4s cubic-bezier(.2,1.5,.4,1)}
+@keyframes board-stamp{from{opacity:0;transform:rotate(-12deg) scale(1.6)}to{opacity:1;transform:rotate(-7deg) scale(1)}}
+.board-rent-highlight{z-index:3;animation:board-rent-glow 1.4s ease-out}
+@keyframes board-rent-glow{0%,45%{outline:2px solid #d6a83e;outline-offset:-2px;background:#fff1c1}100%{outline:0 solid transparent}}
+.board-rent-caption{
+  position:absolute;z-index:10;bottom:22px;left:2px;right:2px;
+  background:#fff4d8;color:#704b15;border:1px solid #d6a83e;border-radius:5px;
+  font-size:clamp(.44rem,.55vw,.62rem);font-weight:900;line-height:1.1;padding:3px 1px;
+  text-align:center;pointer-events:none;box-shadow:0 2px 6px #0004
+}
+.board-token-face{display:grid;place-items:center;width:100%;height:100%;transform-origin:50% 85%}
+.board-piece-landing .board-token-face{animation:board-token-land .42s ease-out}
+@keyframes board-token-land{0%{transform:translateY(-5px) scale(1.12)}65%{transform:translateY(1px) scale(.95)}100%{transform:translateY(0) scale(1)}}
+.player-balance{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.balance-delta{display:inline-flex;padding:1px 4px;border-radius:5px;font-size:.68rem;font-weight:900;line-height:1.3;white-space:nowrap;animation:balance-delta-in .3s ease-out}
+.balance-delta.positive{background:#e4f4de;color:#286b33}
+.balance-delta.negative{background:#f9e6db;color:#a53727}
+@keyframes balance-delta-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+  .board-event,.board-event-caption,.board-rent-highlight,.board-piece-landing .board-token-face,.balance-delta{animation:none!important}
+  .board-event-caption{opacity:1;transform:none}
+}

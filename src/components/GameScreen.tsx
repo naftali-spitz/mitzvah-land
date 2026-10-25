@@ -133,7 +133,27 @@ export function GameScreen() {
                     </span>
                     <div>
                       <b>{pl.name} {pl.isComputer && <span className="bot-tag">🤖 {label("מחשב", "BOT")}</span>}</b>
-                      <Money value={pl.money} />
+                      <div className="player-balance">
+                        <Money value={pl.money} />
+                        {s.transactionQueue[0]?.from === pl.id && (
+                          <span
+                            key={s.transactionQueue[0].id}
+                            className="balance-delta negative"
+                            aria-label={label("ירידה ביתרה", "Balance decreased")}
+                          >
+                            −{s.transactionQueue[0].amount.toLocaleString()}
+                          </span>
+                        )}
+                        {s.transactionQueue[0]?.to === pl.id && (
+                          <span
+                            key={s.transactionQueue[0].id}
+                            className="balance-delta positive"
+                            aria-label={label("עלייה ביתרה", "Balance increased")}
+                          >
+                            +{s.transactionQueue[0].amount.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {pl.inJail && (
                       <span className="traffic-chip">
