@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { boardChangeLabel, detectBoardChange, type BoardChange } from "../engine/boardFeedback";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { movementTiming } from "../engine/movement";
 import { board, groupColors } from "../data/board";
@@ -40,12 +41,14 @@ function BoardPieces({
   players,
   activePlayerIndex,
   moving,
+  landing,
   reduced,
 }: {
   positions: Record<number, TileAnchor>;
   players: ReturnType<typeof useGameStore.getState>["players"];
   activePlayerIndex: number;
   moving: boolean;
+  landing: boolean;
   reduced: boolean;
 }) {
   const { slideSeconds } = movementTiming(reduced);
@@ -60,7 +63,7 @@ function BoardPieces({
           <motion.div
             key={player.id}
             initial={false}
-            className={"token board-piece " + (players[activePlayerIndex]?.id === player.id ? "active-token" : "")}
+            className={`token board-piece ${players[activePlayerIndex]?.id === player.id ? "active-token" : ""} ${landing && !reduced && players[activePlayerIndex]?.id === player.id ? "board-piece-landing" : ""}`}
             data-player-id={player.id}
             data-space-index={player.position}
             title={player.name}
@@ -75,7 +78,7 @@ function BoardPieces({
               ease: "easeInOut",
             }}
           >
-            {player.token}
+            <span className="board-token-face">{player.token}</span>
           </motion.div>
         );
       })}
@@ -84,10 +87,32 @@ function BoardPieces({
 }
 
 export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
-  const { lang, players, ownership, activePlayerIndex, phase, settings } = useGameStore();
+  const { lang, players, ownership, activePlayerIndex, phase, settings, transactionQueue } = useGameStore();
   const gridRef = useRef<HTMLDivElement>(null);
   const [positions, setPositions] = useState<Record<number, TileAnchor>>({});
   const prefersReducedMotion = useReducedMotion();
+  const reduced = settings.reducedMotion || !!prefersReducedMotion;
+  const previousOwnership = useRef(ownership);
+  const feedbackSequence = useRef(0);
+  const [feedback, setFeedback] = useState<(BoardChange & { sequence: number }) | null>(null);
+  const transaction = transactionQueue[0];
+  const rentPropertyId =
+    transaction?.propertyId &&
+    /^Rent\\b/i.test(transaction.reason.en)
+      ? transaction.propertyId
+      : undefined;
+
+  useEffect(() => {
+    const change = detectBoardChange(previousOwnership.current, ownership);
+    previousOwnership.current = ownership;
+    if (change) setFeedback({ ...change, sequence: ++feedbackSequence.current });
+  }, [ownership]);
+
+  useEffect(() => {
+    if (!feedback) return;
+    const timer = window.setTimeout(() => setFeedback(null), 1050);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
 
   useLayoutEffect(() => {
     const grid = gridRef.current;
@@ -163,6 +188,8 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
               (candidate) => ownership[candidate.id]?.ownerId === owner.id,
             ),
           );
+          const tileFeedback = feedback?.spaceId === space.id ? feedback : undefined;
+          const rentHighlight = rentPropertyId === space.id;
           const inspectable =
             space.type === "property" ||
             space.type === "station" ||
@@ -189,8 +216,8 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
                   ? `${space.name.he} / ${space.name.en}, ${owner ? `${owner.name}` : ux("bank", lang)}`
                   : undefined
               }
-              className={`space space-${space.type} ${space.group ? `group-${space.group}` : ""} ${fullSet ? "full-set-tile" : ""} ${own?.mortgaged ? "tile-mortgaged" : ""} ${inspectable ? "inspectable-space" : ""}`}
-              style={gridPos(space.index)}
+              className={`space space-${space.type} ${space.group ? `group-${space.group}` : ""} ${owner ? "owned-space" : ""} ${fullSet ? "full-set-tile" : ""} ${own?.mortgaged ? "tile-mortgaged" : ""} ${inspectable ? "inspectable-space" : ""} ${tileFeedback ? `board-event board-event--${tileFeedback.kind}` : ""} ${rentHighlight ? "board-rent-highlight" : ""}`}
+              style={{ ...gridPos(space.index), "--owner-color": owner?.color ?? "transparent" } as React.CSSProperties}
             >
               {space.group && (
                 <div
@@ -283,7 +310,21 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
                   {ux("mortgage", lang)}
                 </div>
               )}
-
+              {tileFeedback && (
+                <span
+                  key={tileFeedback.sequence}
+                  className="board-event-caption"
+                  data-board-feedback={tileFeedback.kind}
+                  aria-hidden="true"
+                >
+                  {boardChangeLabel(tileFeedback.kind, lang)}
+                </span>
+              )}
+              {rentHighlight && transaction && (
+                <span className="board-rent-caption" aria-hidden="true">
+                  {lang === "en" ? "RENT" : "שכירות"} · {transaction.amount}
+                </span>
+              )}
             </div>
           );
         })}
@@ -293,7 +334,8 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
             players={players}
             activePlayerIndex={activePlayerIndex}
             moving={phase === "MOVING" || phase === "RESOLVING"}
-            reduced={settings.reducedMotion || !!prefersReducedMotion}
+            landing={phase === "RESOLVING"}
+            reduced={reduced}
           />
         )}
       </div>
