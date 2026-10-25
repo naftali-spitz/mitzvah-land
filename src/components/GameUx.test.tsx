@@ -91,6 +91,90 @@ describe("transaction feedback", () => {
   );
 });
 
+
+describe("live board animation cues", () => {
+  it("does not replay saved assets on mount, but highlights a new purchase, a building and a mortgage", async () => {
+    useGameStore.setState({
+      ownership: {
+        "bnei-brak": { ownerId: "p1", mortgaged: false, houses: 0 },
+      },
+    });
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(createElement(Board, { onInspect: vi.fn() })));
+      const bneiBrak = container.querySelector('[data-board-index="1"]')!;
+      expect(bneiBrak.classList.contains("owned-space")).toBe(true);
+      expect(bneiBrak.querySelector("[data-board-feedback]")).toBeNull();
+
+      await act(async () => useGameStore.setState(state => ({
+        ownership: {
+          ...state.ownership,
+          "mea-shearim": { ownerId: "p1", mortgaged: false, houses: 0 },
+        },
+      })));
+      expect(container.querySelector('[data-board-feedback="purchase"]')).toBeTruthy();
+      expect(bneiBrak.querySelector("[data-board-feedback]")).toBeNull();
+
+      await act(async () => useGameStore.setState(state => ({
+        ownership: {
+          ...state.ownership,
+          "bnei-brak": { ownerId: "p1", mortgaged: false, houses: 1 },
+        },
+      })));
+      expect(bneiBrak.querySelector('[data-board-feedback="build"]')).toBeTruthy();
+      expect(bneiBrak.querySelector(".house-icon")).toBeTruthy();
+
+      await act(async () => useGameStore.setState(state => ({
+        ownership: {
+          ...state.ownership,
+          "bnei-brak": { ownerId: "p1", mortgaged: true, houses: 0 },
+        },
+      })));
+      expect(bneiBrak.querySelector('[data-board-feedback="mortgage"]')).toBeTruthy();
+      expect(bneiBrak.querySelector(".mortgaged")).toBeTruthy();
+      expect(bneiBrak.classList.contains("tile-mortgaged")).toBe(true);
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
+
+  it("highlights the exact property that generated rent, not unrelated payments", async () => {
+    const container = document.createElement("div");
+    const root = createRoot(container);
+    try {
+      await act(async () => root.render(createElement(Board, { onInspect: vi.fn() })));
+      await act(async () => useGameStore.setState({
+        transactionQueue: [{
+          id: "rent-tx",
+          from: "p1",
+          to: "p2",
+          amount: 85,
+          reason: { he: "שכירות – בני ברק", en: "Rent – Bnei Brak" },
+          propertyId: "bnei-brak",
+        }],
+      }));
+      const tile = container.querySelector('[data-board-index="1"]')!;
+      expect(tile.classList.contains("board-rent-highlight")).toBe(true);
+      expect(tile.querySelector(".board-rent-caption")?.textContent).toContain("85");
+      expect(container.querySelectorAll(".board-rent-highlight")).toHaveLength(1);
+      await act(async () => useGameStore.setState({
+        transactionQueue: [{
+          id: "mortgage-tx",
+          from: "BANK",
+          to: "p1",
+          amount: 30,
+          reason: { he: "משכון", en: "Mortgage" },
+          propertyId: "bnei-brak",
+        }],
+      }));
+      expect(container.querySelectorAll(".board-rent-highlight")).toHaveLength(0);
+    } finally {
+      await act(async () => root.unmount());
+    }
+  });
+});
+
 describe("board ownership and buildings", () => {
   it("shows owner tokens, mortgage labels, full group badges and SVG house/guest-house counts", async () => {
     const properties = ["bnei-brak", "mea-shearim"];
