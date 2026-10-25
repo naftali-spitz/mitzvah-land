@@ -98,7 +98,7 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
   const transaction = transactionQueue[0];
   const rentPropertyId =
     transaction?.propertyId &&
-    /^Rent\\b/i.test(transaction.reason.en)
+    /^Rent\b/i.test(transaction.reason.en)
       ? transaction.propertyId
       : undefined;
 
