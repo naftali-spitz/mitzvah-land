@@ -46,7 +46,7 @@ function savedPreferences(): SetupPreferences {
         !saved.seatTypes.every(value => value === "human" || value === "computer") ||
         !saved.difficulties.every(value => value === "easy" || value === "medium" || value === "hard")) return defaultSetup;
     return {
-      count: saved.count,
+      count: saved.count!,
       names: saved.names,
       chosen: saved.chosen,
       seatTypes: saved.seatTypes,
