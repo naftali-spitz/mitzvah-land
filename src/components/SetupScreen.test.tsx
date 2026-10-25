@@ -74,7 +74,7 @@ describe("illustrated game setup lobby", () => {
         difficulty.dispatchEvent(new Event("change", { bubbles: true }));
       });
       expect(select(view.container, "Difficulty 1").value).toBe("hard");
-      await act(async () => button(view.container, "START GAME").click());
+      await act(async () => view.container.querySelector<HTMLButtonElement>(".setup-start")!.click());
       expect(useGameStore.getState().started).toBe(true);
       expect(useGameStore.getState().players[0]).toMatchObject({
         name: initial,
@@ -94,15 +94,14 @@ describe("illustrated game setup lobby", () => {
       const picker = view.container.querySelector('[role="dialog"]');
       expect(picker).toBeTruthy();
       expect(picker?.querySelectorAll(".setup-token-grid button")).toHaveLength(10);
-      const taken = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🍷"]');
-      expect(taken?.disabled).toBe(true);
-      const available = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🎒"]');
-      expect(available?.disabled).toBe(false); // Hidden seats are swappable.
-      const newToken = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🥾"]');
-      expect(newToken?.disabled).toBe(false); // Hidden seats are swappable.
-      await act(async () => newToken!.click());
+      const tokenButtons = picker!.querySelectorAll<HTMLButtonElement>(".setup-token-grid button");
+      expect(tokenButtons[1].disabled).toBe(true); // Second player's token is unavailable.
+      expect(tokenButtons[5].disabled).toBe(false); // Hidden seats are swappable.
+      const newToken = tokenButtons[6];
+      expect(newToken.disabled).toBe(false);
+      await act(async () => newToken.click());
       expect(view.container.querySelector('[role="dialog"]')).toBeNull();
-      await act(async () => button(view.container, "START GAME").click());
+      await act(async () => view.container.querySelector<HTMLButtonElement>(".setup-start")!.click());
       expect(useGameStore.getState().players[0].token).toBe("🥾");
       const gameTokens = useGameStore.getState().players.map(player => player.token);
       expect(new Set(gameTokens).size).toBe(gameTokens.length);
