@@ -305,8 +305,14 @@ export function Management({
   const colorGroups = Object.keys(groupColors) as NonNullable<Space["group"]>[];
   return (
     <div className={`management ${inline ? "inline" : ""}`}>
-      {!inline &&
-        colorGroups.map((group) => {
+      {colorGroups
+        .filter((group) =>
+          !inline ||
+          groupSpaces(group).some(
+            (space) => s.ownership[space.id]?.ownerId === p.id,
+          ),
+        )
+        .map((group) => {
           const spaces = groupSpaces(group);
           const complete = ownsGroup(p.id, group, s.ownership);
           const canBuildAny =
@@ -366,7 +372,11 @@ export function Management({
                 </span>
               </header>
               <div className="property-group-spaces">
-                {spaces.map((space) => {
+                {spaces
+                  .filter(
+                    (space) => !inline || s.ownership[space.id]?.ownerId === p.id,
+                  )
+                  .map((space) => {
                   const own = s.ownership[space.id];
                   const isMine = own?.ownerId === p.id;
                   const buildReason = buildBlockReason(
@@ -412,7 +422,7 @@ export function Management({
                                 {ui("משכן", "MORTGAGE", s.lang)}
                               </button>
                             )}
-                            {!own.mortgaged && space.type === "property" && (
+                            {!inline && !own.mortgaged && space.type === "property" && (
                               <button
                                 disabled={!canBuildHere}
                                 onClick={() => {
@@ -447,7 +457,7 @@ export function Management({
                               </button>
                             )}
                           </div>
-                          {space.type === "property" && (
+                          {!inline && space.type === "property" && (
                             <small
                               className={`property-build-row-status ${canBuildHere ? "allowed" : "blocked"}`}
                             >
@@ -482,12 +492,12 @@ export function Management({
                   );
                 })}
               </div>
-              {complete && (
+              {!inline && complete && (
                 <div className="group-complete-badge">
                   {ux("fullSet", s.lang)}
                 </div>
               )}
-              {complete && (
+              {!inline && complete && (
                 <div
                   className={`group-build-status ${canBuildAny ? "allowed" : "blocked"}`}
                 >
