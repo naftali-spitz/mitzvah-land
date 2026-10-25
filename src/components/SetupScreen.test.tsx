@@ -97,7 +97,7 @@ describe("illustrated game setup lobby", () => {
       const taken = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🍷"]');
       expect(taken?.disabled).toBe(true);
       const available = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🎒"]');
-      expect(available?.disabled).toBe(true); // Reserved for a hidden future seat; swap is supported.
+      expect(available?.disabled).toBe(false); // Hidden seats are swappable.
       const newToken = picker?.querySelector<HTMLButtonElement>('button[aria-label="Token 🥾"]');
       expect(newToken?.disabled).toBe(false); // Hidden seats are swappable.
       await act(async () => newToken!.click());
@@ -115,13 +115,17 @@ describe("illustrated game setup lobby", () => {
     const view = await mount();
     try {
       await act(async () => button(view.container, "3").click());
-      await act(async () => button(view.container, "⌄").click());
+      await act(async () => view.container.querySelector<HTMLButtonElement>(".setup-options-toggle")!.click());
+      const freeParking = view.container.querySelector<HTMLInputElement>(".setup-options-content input")!;
+      await act(async () => freeParking.click());
     } finally {
       await view.unmount();
     }
     const rerender = await mount();
     try {
       expect(rerender.container.querySelectorAll(".player-setup")).toHaveLength(3);
+      await act(async () => rerender.container.querySelector<HTMLButtonElement>(".setup-options-toggle")!.click());
+      expect(rerender.container.querySelector<HTMLInputElement>(".setup-options-content input")!.checked).toBe(true);
     } finally {
       await rerender.unmount();
     }
