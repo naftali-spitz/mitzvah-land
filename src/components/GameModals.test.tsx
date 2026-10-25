@@ -5,7 +5,7 @@ import { useGameStore } from "../store/gameStore";
 import { Money } from "./ui";
 import { AssetInformation } from "./AssetCard";
 import { board } from "../data/board";
-import { Management } from "./GameModals";
+import { DebtModal, Management } from "./GameModals";
 import { ux } from "../data/ux";
 
 const players = [
@@ -172,6 +172,117 @@ describe("live asset information", () => {
     useGameStore.setState({ lang: "bi" });
     expect(await renderAsset("jerusalem")).toContain("ירושלים");
     expect(await renderAsset("jerusalem")).toContain("Jerusalem");
+  });
+});
+
+
+async function renderDebtModal() {
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  await act(async () => root.render(createElement(DebtModal)));
+  return {
+    container,
+    cleanup: async () => act(async () => root.unmount()),
+  };
+}
+
+function findButton(scope: ParentNode, label: string): HTMLButtonElement {
+  const button = Array.from(scope.querySelectorAll("button")).find((candidate) =>
+    candidate.textContent?.includes(label),
+  );
+  if (!button) throw new Error(`Missing button: ${label}`);
+  return button;
+}
+
+function findPropertyRow(scope: ParentNode, name: string): Element {
+  const row = Array.from(scope.querySelectorAll(".property-group-space")).find(
+    (candidate) => candidate.textContent?.includes(name),
+  );
+  if (!row) throw new Error(`Missing owned property: ${name}`);
+  return row;
+}
+
+describe("human debt management", () => {
+  it("allows mortgaging an owned colored property and settling the debt", async () => {
+    const mortgageValue = board.find((space) => space.id === "bnei-brak")!.mortgage!;
+    useGameStore.setState((state) => ({
+      lang: "en",
+      debt: { amount: 10 + mortgageValue, reason: "Rent" },
+      phase: "DEBT",
+      ownership: {
+        "bnei-brak": { ownerId: "p1", mortgaged: false, houses: 0 },
+      },
+      players: state.players.map((player, index) =>
+        index === 0 ? { ...player, money: 10 } : player,
+      ),
+    }));
+
+    const { container, cleanup } = await renderDebtModal();
+    try {
+      expect(findButton(container, "PAY NOW").disabled).toBe(true);
+      expect(container.textContent).not.toContain("Mea Shearim");
+      const mortgageButton = findButton(findPropertyRow(container, "Bnei Brak"), "MORTGAGE");
+      expect(mortgageButton.disabled).toBe(false);
+
+      await act(async () => mortgageButton.click());
+      expect(useGameStore.getState().ownership["bnei-brak"].mortgaged).toBe(true);
+      expect(useGameStore.getState().players[0].money).toBe(10 + mortgageValue);
+      expect(findButton(container, "PAY NOW").disabled).toBe(false);
+
+      await act(async () => findButton(container, "PAY NOW").click());
+      expect(useGameStore.getState().debt).toBeUndefined();
+      expect(useGameStore.getState().phase).toBe("MANAGEMENT");
+      expect(useGameStore.getState().players[0].money).toBe(0);
+    } finally {
+      await cleanup();
+    }
+  });
+
+  it("lets a human sell buildings evenly before mortgaging a color group", async () => {
+    const first = board.find((space) => space.id === "bnei-brak")!;
+    const second = board.find((space) => space.id === "mea-shearim")!;
+    const saleProceeds =
+      Math.floor(first.buildingCost! / 2) + Math.floor(second.buildingCost! / 2);
+    const debtAmount = saleProceeds + first.mortgage!;
+    useGameStore.setState((state) => ({
+      lang: "en",
+      debt: { amount: debtAmount, reason: "Rent" },
+      phase: "DEBT",
+      ownership: {
+        "bnei-brak": { ownerId: "p1", mortgaged: false, houses: 1 },
+        "mea-shearim": { ownerId: "p1", mortgaged: false, houses: 1 },
+      },
+      players: state.players.map((player, index) =>
+        index === 0 ? { ...player, money: 0 } : player,
+      ),
+    }));
+
+    const { container, cleanup } = await renderDebtModal();
+    try {
+      expect(container.textContent).not.toContain("＋⌂");
+      expect(findButton(findPropertyRow(container, "Bnei Brak"), "MORTGAGE").disabled).toBe(true);
+
+      await act(async () =>
+        findButton(findPropertyRow(container, "Bnei Brak"), "−⌂").click(),
+      );
+      expect(findButton(findPropertyRow(container, "Bnei Brak"), "MORTGAGE").disabled).toBe(true);
+      await act(async () =>
+        findButton(findPropertyRow(container, "Mea Shearim"), "−⌂").click(),
+      );
+
+      expect(useGameStore.getState().players[0].money).toBe(saleProceeds);
+      const mortgageButton = findButton(findPropertyRow(container, "Bnei Brak"), "MORTGAGE");
+      expect(mortgageButton.disabled).toBe(false);
+      await act(async () => mortgageButton.click());
+
+      expect(useGameStore.getState().players[0].money).toBe(debtAmount);
+      expect(findButton(container, "PAY NOW").disabled).toBe(false);
+      await act(async () => findButton(container, "PAY NOW").click());
+      expect(useGameStore.getState().debt).toBeUndefined();
+      expect(useGameStore.getState().players[0].money).toBe(0);
+    } finally {
+      await cleanup();
+    }
   });
 });
 
