@@ -88,7 +88,7 @@ interface GameState {
   executeTrade: (draft: TradeDraft) => boolean;
   proposeTrade: (draft: TradeDraft) => "accepted" | "declined" | "pending" | "invalid";
   respondToTrade: (accept: boolean) => boolean;
-  addLog: (text: string) => void;
+  addLog: (text: string | Localized) => void;
   dismissTransaction: () => void;
 }
 
@@ -134,13 +134,14 @@ export const useGameStore = create<GameState>()(
                   ?.name ?? details.to,
               );
         const amount = details.amount.toLocaleString();
-        const text = `${from.he} → ${to.he}: ${amount} זוזים עבור ${details.reason.he}. · ${from.en} → ${to.en}: ${amount} Zuzim for ${details.reason.en}.`;
+        const he = `${from.he} ← ${to.he}: ${amount} זוזים — ${details.reason.he}`;
+        const en = `${from.en} → ${to.en}: ${amount} Zuzim — ${details.reason.en}`;
         set((current) => ({
           transactionQueue: [
             ...current.transactionQueue,
             { ...details, id: uid() },
           ],
-          logs: [{ id: uid(), text }, ...current.logs].slice(0, 80),
+          logs: [{ id: uid(), text: en, he, en }, ...current.logs].slice(0, 80),
         }));
       };
       const applyTrade = (fromId: string, draft: TradeDraft): boolean => {
@@ -157,9 +158,12 @@ export const useGameStore = create<GameState>()(
                 ? { ...player, money: player.money + draft.offerCash - draft.requestCash }
                 : player),
         });
-        const offer = draft.offerPropertyId ? board.find(sp => sp.id === draft.offerPropertyId)?.name.en : undefined;
-        const wanted = draft.requestPropertyId ? board.find(sp => sp.id === draft.requestPropertyId)?.name.en : undefined;
-        get().addLog(`${sender.name} ⇄ ${target.name}: trade completed${offer ? ` (gave ${offer})` : ""}${wanted ? ` (received ${wanted})` : ""}.`);
+        const offer = draft.offerPropertyId ? board.find(sp => sp.id === draft.offerPropertyId)?.name : undefined;
+        const wanted = draft.requestPropertyId ? board.find(sp => sp.id === draft.requestPropertyId)?.name : undefined;
+        get().addLog(localized(
+          `${sender.name} ו${target.name} השלימו עסקה${offer ? ` · מסר: ${offer.he}` : ""}${wanted ? ` · קיבל: ${wanted.he}` : ""}`,
+          `${sender.name} and ${target.name} completed a trade${offer ? ` · Gave: ${offer.en}` : ""}${wanted ? ` · Received: ${wanted.en}` : ""}`,
+        ));
         if (draft.offerCash > 0) recordTransaction({
           from: sender.id, to: target.id, amount: draft.offerCash,
           reason: localized("מזומן בעסקה", "Trade cash"), propertyId: draft.offerPropertyId,
@@ -191,8 +195,14 @@ export const useGameStore = create<GameState>()(
         tradeCooldowns: {},
         settings: defaults,
         setupLang: (lang) => set({ lang }),
-        addLog: (text) =>
-          set((s) => ({ logs: [{ id: uid(), text }, ...s.logs].slice(0, 80) })),
+        addLog: (value) =>
+          set((s) => ({
+            logs: [{
+              id: uid(),
+              text: typeof value === "string" ? value : value.en,
+              ...(typeof value === "string" ? {} : { he: value.he, en: value.en }),
+            }, ...s.logs].slice(0, 80),
+          })),
         dismissTransaction: () =>
           set((s) => ({ transactionQueue: s.transactionQueue.slice(1) })),
         newGame: (input, settings) => {
@@ -225,7 +235,7 @@ export const useGameStore = create<GameState>()(
             currentCard: undefined,
             debt: undefined,
             auction: undefined,
-            logs: [{ id: uid(), text: "המשחק התחיל • Game started" }],
+            logs: [{ id: uid(), text: "Game started", he: "המשחק התחיל", en: "Game started" }],
             transactionQueue: [],
             winnerId: undefined,
             turnNumber: 1,
@@ -283,7 +293,7 @@ export const useGameStore = create<GameState>()(
                 pendingSteps: total,
                 phase: "MOVING",
               });
-              get().addLog(`${p.name} rolled doubles and escaped traffic.`);
+              get().addLog(localized(`${p.name} גלגל דאבל ויצא מהפקק`, `${p.name} rolled doubles and escaped traffic`));
               return;
             }
             if (p.jailTurns >= 2) {
@@ -314,7 +324,7 @@ export const useGameStore = create<GameState>()(
                   reason: UX.jailFine,
                 });
                 get().addLog(
-                  `${p.name} paid 50 Zuzim after three turns in traffic.`,
+                  localized(`${p.name} שילם 50 זוזים לאחר שלושה תורות בפקק`, `${p.name} paid 50 Zuzim after three turns in traffic`),
                 );
                 return;
               }
@@ -335,7 +345,7 @@ export const useGameStore = create<GameState>()(
               lastRollWasDouble: false,
               phase: "MANAGEMENT",
             });
-            get().addLog(`${p.name} is still stuck in traffic.`);
+            get().addLog(localized(`${p.name} עדיין תקוע בפקק`, `${p.name} is still stuck in traffic`));
             return;
           }
           const cd = dbl ? s.consecutiveDoubles + 1 : 0;
@@ -353,7 +363,7 @@ export const useGameStore = create<GameState>()(
               phase: "MANAGEMENT",
             });
             get().addLog(
-              `${p.name} rolled three doubles and was sent to traffic.`,
+              localized(`${p.name} גלגל שלושה דאבלים ונכנס לפקק`, `${p.name} rolled three doubles and was sent to traffic`),
             );
             return;
           }
@@ -365,7 +375,7 @@ export const useGameStore = create<GameState>()(
             pendingSteps: total,
             phase: "MOVING",
           });
-          get().addLog(`${p.name} rolled ${dice[0]} + ${dice[1]} = ${total}.`);
+          get().addLog(localized(`${p.name} גלגל ${dice[0]} + ${dice[1]} = ${total}`, `${p.name} rolled ${dice[0]} + ${dice[1]} = ${total}`));
         },
         stepMove: (reducedMotion) => {
           const s = get();
@@ -515,7 +525,7 @@ export const useGameStore = create<GameState>()(
               consecutiveDoubles: 0,
               phase: "MANAGEMENT",
             });
-            get().addLog(`${p.name} went straight into traffic.`);
+            get().addLog(localized(`${p.name} נכנס ישר לפקק`, `${p.name} went straight into traffic`));
             return;
           }
           if (space.type === "mazal" || space.type === "good") {
@@ -650,7 +660,7 @@ export const useGameStore = create<GameState>()(
               debt,
               phase: debt ? "DEBT" : "MANAGEMENT",
             });
-            get().addLog(`${p.name} drew: ${card.text.en}`);
+            get().addLog(localized(`${p.name} שלף קלף: ${card.text.he}`, `${p.name} drew a card: ${card.text.en}`));
             for (const transaction of cardTransactions)
               recordTransaction(transaction);
             return;
@@ -739,7 +749,7 @@ export const useGameStore = create<GameState>()(
               phase: "MANAGEMENT",
             });
             get().addLog(
-              `${w.name} won the auction for ${sp.name.en} at ${a.highestBid} Zuzim.`,
+              localized(`${w.name} זכה במכרז על ${sp.name.he} תמורת ${a.highestBid} זוזים`, `${w.name} won the auction for ${sp.name.en} for ${a.highestBid} Zuzim`),
             );
             recordTransaction({
               from: w.id,
@@ -1025,7 +1035,7 @@ export const useGameStore = create<GameState>()(
             lastRollWasDouble: false,
             turnNumber: s.turnNumber + 1,
           });
-          get().addLog(`${p.name} went bankrupt.`);
+          get().addLog(localized(`${p.name} פשט רגל`, `${p.name} went bankrupt`));
         },
         executeTrade: (draft) => {
           const state = get();
@@ -1050,14 +1060,14 @@ export const useGameStore = create<GameState>()(
           }
           if (to.isComputer) {
             if (!computerAcceptsTrade(get(), from.id, draft)) {
-              get().addLog(`${to.name} declined a trade offered by ${from.name}.`);
+              get().addLog(localized(`${to.name} דחה עסקה שהציע ${from.name}`, `${to.name} declined a trade offered by ${from.name}`));
               return "declined";
             }
             return applyTrade(from.id, draft) ? "accepted" : "invalid";
           }
           if (from.isComputer) {
             set({ pendingTrade: { initiatorId: from.id, draft } });
-            get().addLog(`${from.name} proposed a trade to ${to.name}.`);
+            get().addLog(localized(`${from.name} הציע עסקה ל${to.name}`, `${from.name} proposed a trade to ${to.name}`));
             return "pending";
           }
           return applyTrade(from.id, draft) ? "accepted" : "invalid";
@@ -1068,7 +1078,7 @@ export const useGameStore = create<GameState>()(
           if (!pending) return false;
           set({ pendingTrade: undefined });
           if (!accept) {
-            get().addLog(`${state.players.find(p => p.id === pending.draft.targetId)?.name ?? "Player"} declined a trade.`);
+            get().addLog(localized(`${state.players.find(p => p.id === pending.draft.targetId)?.name ?? "שחקן"} דחה את העסקה`, `${state.players.find(p => p.id === pending.draft.targetId)?.name ?? "Player"} declined a trade`));
             return true;
           }
           return applyTrade(pending.initiatorId, pending.draft);
