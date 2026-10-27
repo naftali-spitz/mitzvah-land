@@ -84,7 +84,9 @@ export interface Card {
 }
 export interface LogEntry {
   id: string;
-  text: string;
+  text: string; // Legacy save compatibility
+  he?: string;
+  en?: string;
 }
 export type TransactionParty = string | "BANK";
 export interface Transaction {

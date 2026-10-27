@@ -747,3 +747,42 @@ body{min-width:0}
   font-size:.91rem;color:#fffdf4;font-weight:900;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
+
+/* Game history lives exclusively behind the left-rail History button. */
+.game-screen .activity-log{
+  top:12px;
+  bottom:12px;
+  width:min(420px,calc(100vw - 95px));
+  max-height:none;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding:12px;
+  background:linear-gradient(145deg,#fffdf5,#f3ead9);
+  border:1px solid #efe2c8;
+  box-shadow:0 16px 55px #061d18aa;
+}
+.game-screen .activity-log .log-head{flex:none;border-bottom:1px solid #ded0b7}
+.game-screen .activity-log .log-head button{width:32px;height:32px;border-radius:9px}
+.game-screen .history-entries{min-height:0;overflow:auto;overscroll-behavior:contain;padding:1px 3px}
+.game-screen .history-entry{
+  padding:10px 8px;
+  border-bottom:1px solid #dfd3bf;
+  line-height:1.5;
+}
+.game-screen .history-entry:nth-child(even){background:#f7f1e6}
+.game-screen .history-entry-primary{
+  font-size:.83rem;
+  color:#244438;
+  text-align:start;
+  unicode-bidi:isolate;
+  overflow-wrap:anywhere;
+}
+.game-screen .history-entry-secondary{
+  font-size:.71rem;
+  color:#687b6e;
+  text-align:left;
+  margin-top:4px;
+  unicode-bidi:isolate;
+  overflow-wrap:anywhere;
+}
