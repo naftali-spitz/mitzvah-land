@@ -147,7 +147,7 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
   }, []);
   return (
     <div className="board-shell">
-      <div className="board-grid" ref={gridRef}>
+      <div className="board-grid" ref={gridRef} dir="ltr">
         <div className="board-center">
           <div className="sun-orbit" />
           <div className="hills hill-a" />
@@ -216,6 +216,7 @@ export function Board({ onInspect }: { onInspect: (spaceId: string) => void }) {
                   ? `${space.name.he} / ${space.name.en}, ${owner ? `${owner.name}` : ux("bank", lang)}`
                   : undefined
               }
+              dir={lang === "en" ? "ltr" : "rtl"}
               className={`space space-${space.type} ${space.group ? `group-${space.group}` : ""} ${owner ? "owned-space" : ""} ${fullSet ? "full-set-tile" : ""} ${own?.mortgaged ? "tile-mortgaged" : ""} ${inspectable ? "inspectable-space" : ""} ${tileFeedback ? `board-event board-event--${tileFeedback.kind}` : ""} ${rentHighlight ? "board-rent-highlight" : ""}`}
               style={{ ...gridPos(space.index), "--owner-color": owner?.color ?? "transparent" } as React.CSSProperties}
             >
