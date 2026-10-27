@@ -604,7 +604,7 @@ body{min-width:0}
   background:#ebe2cc;
   box-shadow:inset 0 0 0 1px #fff7;
 }
-.game-screen .board-grid>.space{direction:rtl;background:#fffcf2;border-color:#b2bba9;color:#20372f;transition:background .15s,filter .15s}
+.game-screen .board-grid>.space{background:#fffcf2;border-color:#b2bba9;color:#20372f;transition:background .15s,filter .15s}
 .game-screen .board-grid>.space:hover{background:#f3f9eb;filter:brightness(1.025)}
 .game-screen .board-grid>.space.space-mazal{background:#faebcf}
 .game-screen .board-grid>.space.space-good{background:#e6f0dc}
