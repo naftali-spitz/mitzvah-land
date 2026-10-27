@@ -247,43 +247,40 @@ export function GameScreen() {
               {shortLabel("סיים תור", "END TURN")} ➜
             </button>
           </div>
-          <section className="sidebar-activity" aria-label={label("מה קרה במשחק", "Recent activity")}>
-            <div className="sidebar-activity-head">
-              <h3>{shortLabel("◷ פעילות אחרונה", "◷ Recent activity")}</h3>
-              <button type="button" onClick={() => setLogOpen(true)}>{shortLabel("הצג הכל", "See all")}</button>
-            </div>
-            {s.logs.length === 0 ? (
-              <p className="sidebar-activity-empty">{shortLabel("המשחק רק התחיל", "The game just started")}</p>
-            ) : (
-              <div className="sidebar-activity-items">
-                {s.logs.slice(-3).reverse().map(entry => (
-                  <div className="sidebar-activity-item" key={entry.id}>
-                    <span aria-hidden="true" className="activity-bullet">✦</span>
-                    <span dir="auto">{entry.text}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
         </aside>
       </div>
       <AnimatePresence>
         {logOpen && (
           <motion.div
             className="activity-log"
+            role="dialog"
+            aria-label={label("היסטוריית המשחק", "Game history")}
+            dir={s.lang === "en" ? "ltr" : "rtl"}
             initial={{ x: s.lang === "he" ? -320 : 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: s.lang === "he" ? -320 : 320, opacity: 0 }}
           >
             <div className="log-head">
               <b>{label("מה קרה במשחק", "GAME HISTORY")}</b>
-              <button onClick={() => setLogOpen(false)}>×</button>
+              <button type="button" aria-label={shortLabel("סגירת היסטוריה", "Close history")} onClick={() => setLogOpen(false)}>×</button>
             </div>
-            {s.logs.map((l) => (
-              <div className="log-line" key={l.id}>
-                {l.text}
-              </div>
-            ))}
+            <div className="history-entries">
+              {s.logs.map((entry) => {
+                const legacyParts = entry.text.split(" · ");
+                const hebrew = entry.he ?? (legacyParts.length > 1 ? legacyParts[0] : entry.text);
+                const english = entry.en ?? (legacyParts.length > 1 ? legacyParts.slice(1).join(" · ") : entry.text);
+                const primary = s.lang === "en" ? english : hebrew;
+                const secondary = s.lang === "bi" && english !== hebrew ? english : undefined;
+                return (
+                  <div className="history-entry" key={entry.id}>
+                    <div className="history-entry-primary" dir={s.lang === "en" ? "ltr" : "rtl"}>
+                      <bdi>{primary}</bdi>
+                    </div>
+                    {secondary && <div className="history-entry-secondary" dir="ltr"><bdi>{secondary}</bdi></div>}
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
