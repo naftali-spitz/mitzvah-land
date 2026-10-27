@@ -109,12 +109,12 @@ export function GameScreen() {
         <aside className="side-panel" dir={s.lang === "he" ? "rtl" : "ltr"}>
           <div className="current-turn-summary" aria-label={label("תור נוכחי", "Current turn")}>
             <div className="turn-summary-heading">
-              <span>{label("תור", "TURN")} {s.turnNumber}</span>
-              <span className="turn-summary-game">ארץ המצוות</span>
+              <span className="turn-round">{shortLabel("תור", "TURN")} <b>{s.turnNumber}</b></span>
+              <span className="turn-summary-game">{shortLabel("ארץ המצוות", "MITZVAH LAND")}</span>
             </div>
             <div className="turn-summary-player">
-              <span className="turn-summary-token" style={{ background: p.color }}>{p.token}</span>
-              <strong>{p.name}{p.isComputer ? " 🤖" : ""}</strong>
+              <span className="turn-status-pulse" style={{ background: p.color }} aria-hidden="true" />
+              <span className="turn-status-text">{shortLabel("עכשיו משחק:", "Now playing:")} <strong>{p.name}{p.isComputer ? " 🤖" : ""}</strong></span>
             </div>
           </div>
           <div className="sidebar-section-heading">{shortLabel("👥 שחקנים", "👥 Players")}</div>
