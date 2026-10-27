@@ -488,3 +488,145 @@ body{min-width:0}
     animation:none!important;transition:none!important;
   }
 }
+
+
+/* Approved board refresh (October 2026)
+   Dark tabletop, light futuristic parchment-and-glass surfaces, olive/teal/gold accents.
+   Scoped to live gameplay so the setup screen and game logic are unchanged. */
+.game-screen{
+  background:
+    radial-gradient(ellipse at 51% 16%,#2b5146 0%,transparent 49%),
+    radial-gradient(circle at 12% 83%,#31615355,transparent 35%),
+    radial-gradient(circle at 90% 15%,#a5863130,transparent 36%),
+    linear-gradient(160deg,#122f28 0%,#102a24 55%,#0c211c 100%);
+  position:relative;
+  isolation:isolate;
+}
+.game-screen::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:-1;
+  opacity:.25;
+  background-image:linear-gradient(#69c4b51b 1px,transparent 1px),linear-gradient(90deg,#69c4b51b 1px,transparent 1px);
+  background-size:36px 36px;
+  mask-image:linear-gradient(to bottom,#000a,transparent 92%);
+}
+.game-screen .utility-rail,
+.game-screen .current-turn-summary,
+.game-screen .player-card,
+.game-screen .turn-console{
+  background:linear-gradient(140deg,#fffef5f5,#f8f0deed);
+  border:1px solid #ffffffd9;
+  color:#193c32;
+  box-shadow:0 9px 28px #051c1738,inset 0 1px 0 #fff;
+  backdrop-filter:blur(12px);
+}
+.game-screen .utility-rail{
+  background:linear-gradient(170deg,#fefdf4f5,#e9f0e6ec);
+  border-radius:17px;
+  padding:7px 4px;
+  box-shadow:0 8px 27px #041a1550,0 0 0 1px #d6e6d840;
+}
+.game-screen .utility-button{
+  background:linear-gradient(145deg,#fffdf4,#edf3e8);
+  border:1px solid #d0ddcb;
+  color:#326353;
+  box-shadow:0 2px 5px #244d3c18;
+  border-radius:12px;
+}
+.game-screen .utility-button:hover,.game-screen .utility-button.is-active{
+  background:linear-gradient(145deg,#def4e8,#f8f3d7);
+  border-color:#5eada0;
+  box-shadow:0 0 0 2px #56b2a13b,0 3px 12px #4aaea036;
+  color:#1b6657;
+}
+.game-screen .utility-button.utility-danger{border-color:#e6cbc2;color:#a25347;margin-top:8px}
+.game-screen .utility-button.utility-danger:hover{background:#ffebe5;color:#8b342b}
+.game-screen .current-turn-summary{
+  border-color:#d4e2d1;
+  background:linear-gradient(135deg,#eaf4e9f7,#fffaf0f4);
+  border-radius:15px;
+  box-shadow:inset 3px 0 0 #50a994,0 8px 20px #071c162e;
+}
+.game-screen .turn-summary-game{color:#497f65}
+.game-screen .player-card{border-radius:13px;padding:9px 10px}
+.game-screen .player-card.current{
+  border:1px solid var(--player);
+  background:linear-gradient(130deg,#eff8ed,#fffaf0);
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--player) 25%,transparent),0 5px 16px #112d223b;
+}
+.game-screen .player-card.current:before{background:var(--player)}
+.game-screen .player-token,.game-screen .turn-summary-token{
+  border:2px solid #ffffffeb;
+  box-shadow:0 2px 6px #12291f45,inset 0 1px 0 #fff7;
+}
+.game-screen .turn-console{
+  border-radius:17px;
+  padding:13px;
+  background:linear-gradient(155deg,#fffdf5fa,#f6edddf4);
+}
+.game-screen .die{
+  border:1px solid #ffffff;
+  border-radius:12px;
+  color:#244c40;
+  box-shadow:0 4px 0 #d4c9b4,0 6px 14px #23524324;
+}
+.game-screen .roll-button,.game-screen .action-grid .end-turn{
+  background:linear-gradient(135deg,#f0d77b,#d6aa48 60%,#c4942d);
+  border:1px solid #d8b055;
+  border-radius:12px;
+  color:#193e34;
+  text-shadow:0 1px #fff7;
+  box-shadow:0 3px 0 #a17e30,0 6px 14px #a3802945;
+  transition:filter .15s ease,transform .15s ease,box-shadow .15s ease;
+}
+.game-screen .roll-button:hover:not(:disabled),.game-screen .action-grid .end-turn:hover:not(:disabled){
+  filter:brightness(1.06);transform:translateY(-1px);
+  box-shadow:0 4px 0 #a17e30,0 7px 19px #d1ad5460;
+}
+.game-screen .action-grid button:not(.end-turn){
+  background:linear-gradient(145deg,#fffdf2,#e8f0e6);
+  border:1px solid #c7d8cd;
+  color:#2e5c4d;
+  border-radius:11px;
+  box-shadow:0 2px 7px #0f31241a;
+}
+.game-screen .action-grid button:not(.end-turn):hover:not(:disabled){
+  background:#e4f3e9;border-color:#69b6a2;
+}
+.game-screen .board-shell{
+  background:linear-gradient(140deg,#e3d2ae,#c8b38b 68%,#b59d73);
+  border:1px solid #efe2bf;
+  border-radius:19px;
+  box-shadow:inset 0 0 0 2px #f9e8c69a,0 3px 0 #917a55,0 14px 40px #061a1459,0 0 20px #62bca11c;
+}
+.game-screen .board-grid{
+  direction:ltr;
+  border:2px solid #476b5e;
+  background:#ebe2cc;
+  box-shadow:inset 0 0 0 1px #fff7;
+}
+.game-screen .board-grid>.space{direction:rtl;background:#fffcf2;border-color:#b2bba9;color:#20372f;transition:background .15s,filter .15s}
+.game-screen .board-grid>.space:hover{background:#f3f9eb;filter:brightness(1.025)}
+.game-screen .board-grid>.space.space-mazal{background:#faebcf}
+.game-screen .board-grid>.space.space-good{background:#e6f0dc}
+.game-screen .board-grid>.space.space-tax{background:#f5e4d9}
+.game-screen .board-grid>.space.space-station,.game-screen .board-grid>.space.space-utility{background:#e4eee9}
+.game-screen .board-center{
+  background:linear-gradient(#c1e3e3 0 40%,#e6e8c5 40% 62%,#dac9a3 62%);
+}
+.game-screen .center-mark{
+  background:linear-gradient(135deg,#fffdf4ed,#f6ecdcf1);
+  border:1px solid #fffdf4;
+  box-shadow:0 13px 31px #2b5a4830,0 0 0 1px #fff7;
+  backdrop-filter:blur(8px);
+}
+.game-screen .center-mark h1{color:#276452}
+.game-screen .center-mark h2{color:#967232}
+.game-screen .board-piece.active-token{
+  outline-color:#e4b84e;box-shadow:0 2px 8px #0008,0 0 10px #f4cb6fa0;
+}
+.game-screen .space:focus-visible,.game-screen button:focus-visible{
+  outline:3px solid #c59833;outline-offset:2px;
+}
+@media(prefers-reduced-motion:reduce){
+  .game-screen .roll-button,.game-screen .action-grid .end-turn,.game-screen .board-grid>.space{transition:none}
+}
