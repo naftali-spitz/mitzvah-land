@@ -134,7 +134,7 @@ export const useGameStore = create<GameState>()(
                   ?.name ?? details.to,
               );
         const amount = details.amount.toLocaleString();
-        const he = `${from.he} ← ${to.he}: ${amount} זוזים — ${details.reason.he}`;
+        const he = `${from.he} העביר ל${to.he} ${amount} זוזים — ${details.reason.he}`;
         const en = `${from.en} → ${to.en}: ${amount} Zuzim — ${details.reason.en}`;
         set((current) => ({
           transactionQueue: [
