@@ -79,6 +79,8 @@ export function GameScreen() {
   }, [s.currentCard?.id, s.settings.sound]);
   const rolling = s.phase === "MOVING" && s.pendingSteps === s.lastDiceTotal;
   const label = (he: string, en: string) => ui(he, en, s.lang);
+  // Action buttons have limited width: in bilingual mode use Hebrew with English accessible tooltip.
+  const shortLabel = (he: string, en: string) => s.lang === "en" ? en : he;
   if (!p) return null;
   return (
     <main className="game-screen" dir={s.lang === "he" ? "rtl" : "ltr"}>
@@ -115,6 +117,7 @@ export function GameScreen() {
               <strong>{p.name}{p.isComputer ? " 🤖" : ""}</strong>
             </div>
           </div>
+          <div className="sidebar-section-heading">{shortLabel("👥 שחקנים", "👥 Players")}</div>
           <div className="players-list">
             {s.players.map((pl, i) => {
               const props = ownedSpaces(pl.id, s.ownership);
@@ -176,6 +179,7 @@ export function GameScreen() {
             })}
           </div>
           <div className="turn-console">
+            <div className="sidebar-section-heading console-heading">{shortLabel("🎲 התור שלך", "🎲 Your turn")}</div>
             <Dice
               values={s.dice}
               rolling={rolling}
@@ -216,7 +220,7 @@ export function GameScreen() {
               }}
             >
               <span>⚄</span>
-              {p.isComputer ? label("המחשב משחק...", "COMPUTER PLAYING...") : label("גלגל קוביות", "ROLL DICE")}
+              {p.isComputer ? shortLabel("המחשב משחק...", "COMPUTER PLAYING...") : shortLabel("גלגל קוביות", "ROLL DICE")}
             </button>
             <div className="phase-note">{phaseText(s.phase, s.lang)}</div>
             {s.settings.freeParkingJackpot && s.freeParkingPot > 0 && (
@@ -227,22 +231,40 @@ export function GameScreen() {
           </div>
           <div className="action-grid">
             <button disabled={!!p.isComputer} onClick={() => setManageOpen(true)}>
-              {label("🏠 נכסים", "🏠 PROPERTIES")}
+              {shortLabel("🏠 נכסים", "🏠 PROPERTIES")}
             </button>
             <button
               disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !s.players.some(pl => pl.id !== p.id && !pl.bankrupt)}
               onClick={() => setTradeOpen(true)}
             >
-              {label("⇄ עסקה", "⇄ TRADE")}
+              {shortLabel("⇄ עסקה", "⇄ TRADE")}
             </button>
             <button
               disabled={!!p.isComputer || s.phase !== "MANAGEMENT" || !!s.currentCard || !!s.debt}
               className="end-turn"
               onClick={s.endTurn}
             >
-              {label("סיים תור", "END TURN")} ➜
+              {shortLabel("סיים תור", "END TURN")} ➜
             </button>
           </div>
+          <section className="sidebar-activity" aria-label={label("מה קרה במשחק", "Recent activity")}>
+            <div className="sidebar-activity-head">
+              <h3>{shortLabel("◷ פעילות אחרונה", "◷ Recent activity")}</h3>
+              <button type="button" onClick={() => setLogOpen(true)}>{shortLabel("הצג הכל", "See all")}</button>
+            </div>
+            {s.logs.length === 0 ? (
+              <p className="sidebar-activity-empty">{shortLabel("המשחק רק התחיל", "The game just started")}</p>
+            ) : (
+              <div className="sidebar-activity-items">
+                {s.logs.slice(-3).reverse().map(entry => (
+                  <div className="sidebar-activity-item" key={entry.id}>
+                    <span aria-hidden="true" className="activity-bullet">✦</span>
+                    <span dir="auto">{entry.text}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </aside>
       </div>
       <AnimatePresence>
