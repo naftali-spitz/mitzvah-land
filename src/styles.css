@@ -630,3 +630,89 @@ body{min-width:0}
 @media(prefers-reduced-motion:reduce){
   .game-screen .roll-button,.game-screen .action-grid .end-turn,.game-screen .board-grid>.space{transition:none}
 }
+
+
+/* Sidebar mockup parity: compact readable panels, no cramped mixed-language CTAs */
+.game-screen .side-panel{gap:9px}
+.game-screen .sidebar-section-heading{
+  color:#f4dfae;
+  font-size:.75rem;
+  font-weight:900;
+  letter-spacing:.015em;
+  padding:2px 6px 0;
+  text-shadow:0 1px 3px #041c16;
+}
+.game-screen .sidebar-section-heading.console-heading{
+  color:#486858;text-shadow:none;text-align:start;
+  padding:0 1px 1px;font-size:.72rem;
+}
+.game-screen .player-card{
+  padding:8px 10px;
+  min-height:56px;
+  border-color:#e5e5d5;
+  box-shadow:0 4px 15px #061e1740,inset 0 1px #fff;
+}
+.game-screen .players-list{gap:7px}
+.game-screen .player-card.current{
+  border:2px solid var(--player);
+  background:linear-gradient(120deg,#fffef8,#eaf4e8);
+}
+.game-screen .player-main{min-width:0}
+.game-screen .player-main>div{min-width:0}
+.game-screen .player-main b{font-size:.85rem}
+.game-screen .property-dots{margin-top:5px}
+.game-screen .turn-console{padding:11px 12px 13px}
+.game-screen .turn-console .dice-wrap{margin:5px 0 10px}
+.game-screen .roll-button{min-height:44px;line-height:1.25;overflow-wrap:normal}
+.game-screen .roll-button:disabled{
+  opacity:1;
+  cursor:not-allowed;
+  background:linear-gradient(135deg,#f4e9bd,#e8d6a1);
+  border-color:#d2bc8b;color:#897c60;text-shadow:none;
+  box-shadow:0 2px 0 #b9a477;
+}
+.game-screen .action-grid{gap:7px}
+.game-screen .action-grid button{min-height:43px;line-height:1.2;white-space:normal}
+.game-screen .action-grid button:disabled:not(.end-turn){opacity:.6}
+.game-screen .action-grid .end-turn:disabled{
+  opacity:.67;box-shadow:0 2px 0 #9b854c;
+}
+.game-screen .sidebar-activity{
+  padding:12px 12px 10px;
+  background:linear-gradient(145deg,#fffdf6f5,#f0eddef2);
+  border:1px solid #ffffffd9;
+  border-radius:16px;
+  color:#234337;
+  box-shadow:0 8px 24px #061e1740,inset 0 1px #fff;
+  backdrop-filter:blur(12px);
+}
+.game-screen .sidebar-activity-head{
+  display:flex;align-items:center;justify-content:space-between;gap:7px;
+  padding-bottom:5px;
+}
+.game-screen .sidebar-activity-head h3{font-size:.79rem;margin:0;min-width:0}
+.game-screen .sidebar-activity-head button{
+  border:0;background:transparent;
+  color:#327b6d;font-size:.67rem;font-weight:900;padding:5px;
+  white-space:nowrap;border-radius:7px;
+}
+.game-screen .sidebar-activity-head button:hover{background:#dcf1e6}
+.game-screen .sidebar-activity-items{display:flex;flex-direction:column}
+.game-screen .sidebar-activity-item{
+  display:flex;align-items:flex-start;gap:7px;
+  border-top:1px solid #dfdfd0;
+  padding:8px 1px;font-size:.72rem;line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.game-screen .activity-bullet{
+  flex:none;display:grid;place-items:center;
+  width:19px;height:19px;background:#dcefe1;color:#34705b;
+  border-radius:7px;font-size:.7rem;
+}
+.game-screen .sidebar-activity-empty{
+  margin:5px 0;color:#60776a;font-size:.73rem;
+}
+@media(max-width:1050px){
+ .game-screen .player-card{min-height:52px;padding:7px 8px}
+ .game-screen .sidebar-activity{padding:10px}
+}
