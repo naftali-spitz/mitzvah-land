@@ -17,6 +17,7 @@ import type {
   GamePhase,
   Lang,
   LogEntry,
+  Localized,
   Ownership,
   Player,
   Space,
